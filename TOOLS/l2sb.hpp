@@ -1,36 +1,38 @@
-#include <stdio.h>
+#pragma once
+#include <cstdio>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
 
-int BitWidth         = 12;
-int MaxBands         =  2;
-long int DataLimit   = -1;
-int TruncatedHeaders =  1;
-int UniformHeaders   =  1;
-int FileStep 	     =  1;
-int Unipolar         =  0;
-int ShowQuantisation =  0;
-int ResultsFile      =  1;
+inline int BitWidth         = 12;
+inline int MaxBands         =  2;
+inline long int DataLimit   = -1;
+inline int TruncatedHeaders =  1;
+inline int UniformHeaders   =  1;
+inline int FileStep 	     =  1;
+inline int Unipolar         =  0;
+inline int ShowQuantisation =  0;
+inline int ResultsFile      =  1;
 
-int TESTMODE=0;
+inline int TESTMODE=0;
 #define TEST_COMPRESSION 1
 
-#define MAXDATA 1*1024*1024
-int *Data;
+#define MAX_DATA (4*1024*1024)
 
-char FilePath[1024]="";
-char FileName[1024]="";
-char OutputFile[1024]="out.csv";
-char HeaderFile[1024]="header.csv";
+inline int *Data;
 
-char FileList[2048][64]={"dummy"};
-int  FileCount=0;
-long int DataCount;
+inline char FilePath[1024]="";
+inline char FileName[1024]="";
+inline char OutputFile[1024]="out.csv";
+inline char HeaderFile[1024]="header.csv";
 
-float DataRange = 16.0;
-int Quantisation = 10;
+inline char FileList[2048][64]={"dummy"};
+inline int  FileCount=0;
+inline long int DataCount;
+
+inline float DataRange = 16.0;
+inline int Quantisation = 10;
 
 void SetMaxBands(int x);
 void SetTruncatedHeaders(int x);
@@ -38,8 +40,8 @@ void SetUniformHeaders(int x);
 void SetFileStep(int x);
 void SetDataLimit(long int x);
 void SetBitWidth(int x);
-void SetOutputFile(char * Str);
-void SetHeaderFile(char * Str);
+void SetOutputFile(char* Str);
+void SetHeaderFile(char* Str);
 void SetUnipolarData();
 void SetBipolarData();
 void SetResultFile(int x);
@@ -47,7 +49,7 @@ void SetResultFile(int x);
 void ReportConfig();
 
 int Init();
-int Cleanup();
+void Cleanup();
 void GetFileList();
 
 void ReadDataFile(char * Path, char * FileName);
@@ -75,49 +77,47 @@ void L2SB();
 #define TEST_CONFIG_BONN_EEG    1
 #define TEST_CONFIG_MITBIH_ECG  2
 
-int L2SBCompression_Debug =0;
+inline int L2SBCompression_Debug = 0;
 
 
-#include <stdio.h>
+// #include <stdio.h>
 
 
 
 /////////////////////////////////////////////
 
 
-
-int Init()
+inline int Init()
 {
 
-	Data = (int *) calloc(MAXDATA,sizeof(int));
+	Data = static_cast<int*>(std::calloc(MAX_DATA, sizeof(int)));
 
-	if(Data==NULL) 
+	if(Data == nullptr)
 	{
 		printf(" Memory allocation problem \n");
 		return(0);
 	}
  
-	printf(" Allocated memory %5.2f Mbytes \n", (double)MAXDATA/1024.0/1024.0);
+	printf(" Allocated memory %5.2f Mbytes \n", static_cast<double>(MAX_DATA)/(1024.0 * 1024.0));
 	return(1);
 }
 
-int Cleanup()
+void Cleanup()
 {
-	free(Data);
-} 
+	std::free(Data);
+}
 
-void GetFileList()
+inline void GetFileList()
 {
-	FILE * ip;
-	
 	FileCount=0;
 	
 	char Str[4096];
 	sprintf(Str,"ls %s > filelist.txt",FilePath);
     system(Str);
 
-    ip=fopen("filelist.txt","r");
-    if(ip == NULL) { return;}
+    FILE* ip = fopen("filelist.txt", "r");
+
+    if(ip == nullptr) { return;}
     
         while(1)
         {       
@@ -131,7 +131,8 @@ void GetFileList()
     
     fclose(ip);
     
-    sprintf(Str,"rm filelist.txt",FilePath);
+    // sprintf(Str,"rm filelist.txt", FilePath);
+    sprintf(Str,"rm filelist.txt");
     system(Str);
 }
 
@@ -154,7 +155,7 @@ void ReadDataFile(char * Path, char * FileName, int Term)
    
     
     ip = fopen(Str,"r");
-    if(ip==NULL) {printf("File Error %s", Str); return; }
+    if(ip == nullptr) {printf("File Error %s", Str); return; }
     
     printf(" File import : %s\n",Str);
     printf("-----------------\n");
@@ -166,7 +167,7 @@ void ReadDataFile(char * Path, char * FileName, int Term)
         
         // extract specific csv term
         int c=0;
-        while(strstr(Str,",")!=NULL)
+        while(strstr(Str,",") != nullptr)
         	{
         		if(c>=Term){break;}
         		strcpy(Str,strstr(Str,",")+1);
@@ -192,7 +193,7 @@ void ReadDataFile(char * Path, char * FileName, int Term)
     fclose(ip);
 }
 
-int QuantiseData(float f)
+inline int QuantiseData(float f)
 {
 	if(Unipolar==1)
 	{
@@ -205,7 +206,7 @@ int QuantiseData(float f)
 	
 }
 
-int QuantiseBipolarData(float f)
+inline int QuantiseBipolarData(float f)
 {
        float q =  f+DataRange;
        
@@ -219,7 +220,7 @@ int QuantiseBipolarData(float f)
        return (int)q;
 }
 
-int QuantiseUnipolarData(float f)
+inline int QuantiseUnipolarData(float f)
 {
        float q =  f;
        
@@ -236,7 +237,7 @@ int QuantiseUnipolarData(float f)
        return (int)q;
 }
 
-void L2SB()
+inline void L2SB()
 {
     int Q = Quantisation;
     int permcount=0;
@@ -331,7 +332,7 @@ void L2SB()
                      
                    if(Hcount<=MaxBands)
                    	{   
-                   		printf("\r XPERM %03d (H%d,%d) ) [T=d%][ ",permcount,Hwidth,Hcount);
+                   		printf("\r XPERM %03d (H%d,%d) ) [T=d%%][ ",permcount,Hwidth,Hcount);
                 
                    		for(int i=0;i<b;i++) { if(Bands[i]<0){break;} printf("%d, ",Bands[i]); }
                    		printf(" -- ");
@@ -394,8 +395,7 @@ void L2SB()
 }
 
 
-
-float L2SBCompression(int b1,int b2,int b3,int b4,int h1,int h2,int h3,int h4)
+inline float L2SBCompression(int b1,int b2,int b3,int b4,int h1,int h2,int h3,int h4)
 {
 	int Band[32];
 	int Header[32];
@@ -414,8 +414,8 @@ float L2SBCompression(int b1,int b2,int b3,int b4,int h1,int h2,int h3,int h4)
 		
 	return ( L2SB_MultiCompression(Band,Header) );
 }
-	
-float L2SB_MultiCompression(int *Band,int *Headers)
+
+inline float L2SB_MultiCompression(int *Band,int *Headers)
 {
     float CR = 0;
     long int BitCount =0;
@@ -468,7 +468,7 @@ float L2SB_MultiCompression(int *Band,int *Headers)
         for(Count=1; Count < DataCount; Count++)
         {
           	if((Count%250000)==0)
-          		{ printf("%d\n",Count);
+          		{ printf("%ld\n", Count);
           			
           		}
           		          	
@@ -545,8 +545,7 @@ float L2SB_MultiCompression(int *Band,int *Headers)
 }
 
 
-
-void DecToBin(char * Bin, long int i, long  int n)
+inline void DecToBin(char * Bin, long int i, long  int n)
 {
     char Tmp[1024]="";
     
@@ -567,7 +566,7 @@ void DecToBin(char * Bin, long int i, long  int n)
 	
 }
 
-void ConfigTestCase(int Selection)
+inline void ConfigTestCase(int Selection)
 {
 
     switch(Selection)
@@ -603,7 +602,7 @@ void ConfigTestCase(int Selection)
     
 }
 
-void RPerms(int n)
+inline void RPerms(int n)
 {
 	static int c=-2;
 	static int B[32];
@@ -653,7 +652,7 @@ void RPerms(int n)
 	
 }
 
-void TruncatedBinary(int * Headers, int n)
+inline void TruncatedBinary(int * Headers, int n)
 {
 	
     int Hcount = n;
@@ -676,7 +675,7 @@ void TruncatedBinary(int * Headers, int n)
 	
 }
 
-void UniformBinary(int * Headers, int n)
+inline void UniformBinary(int * Headers, int n)
 {
 	
 	int Hcount = n;
@@ -690,7 +689,7 @@ void UniformBinary(int * Headers, int n)
     	
 }
 
-void SetMaxBands(int x)
+inline void SetMaxBands(int x)
 {
 	MaxBands=x;	
 	
@@ -724,12 +723,12 @@ void SetBitWidth(int n)
 	BitWidth=n;
 }
 
-void SetOutputFile(char * Str)
+inline void SetOutputFile(char* Str)
 {
 	strcpy(OutputFile,Str);
 }
 
-void SetHeaderFile(char * Str)
+inline void SetHeaderFile(char* Str)
 {
 	strcpy(HeaderFile,Str);
 }
@@ -754,7 +753,7 @@ void SetResultsOutput(int x)
 	ResultsFile = x;	
 }
 
-void ReportConfig()
+inline void ReportConfig()
 {
 	////////////////////////////////////////
 	// report settings
@@ -777,7 +776,7 @@ void ReportConfig()
 float CRUB=0;
 float CRTB=0;
 
-float test_L2SB(char * BandConfig)
+inline float test_L2SB(char * BandConfig)
 {
     float CR[2]={0,0};   
     int Q = Quantisation;

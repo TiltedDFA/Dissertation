@@ -1,4 +1,5 @@
 #include "l2sb.hpp"
+#include <string>
 
 void L2SB_BONN_TEST(int O, int S, int H);
 void L2SB_MITBIH_TEST(int Term, char * BandConfig);
@@ -44,21 +45,24 @@ int main(void)
       	{
       		SetFileStep(1);			// test every nth file, 1 = all files //
 	    	SetMaxBands(-1);		// -1 do not limit the number of bands, n = max bands //
-	    	SetDataLimit(100000);		// -1 read all file, otherwise read n values //
+	    	// SetDataLimit(100000);		// -1 read all file, otherwise read n values //
+	    	SetDataLimit(-1);		// -1 read all file, otherwise read n values //
 	    	SetUnipolarData();		// MIT data is unipolar //
 	        SetTruncatedHeaders(1);
 	    	SetUniformHeaders(1);
-	    	
-	    	SetOutputFile("Output/test/Datatest_UHC1.csv");
-	    	SetHeaderFile("Output/test/Headertest_UHC1.csv");	
+
+	        std::string output_file = "Output/test/Datatest_UHC1.csv";
+        	std::string header_file = "Output/test/Headertest_UHC1.csv";
+	    	SetOutputFile(output_file.data());
+	    	SetHeaderFile(header_file.data());
 	    	ReportConfig();
 	    	
 	    	// just run one configuration 
 	    	// example is a 5-band example
-	    	
-       		   L2SB_MITBIH_TEST(1, "4,4,2,1,1,0,-1");
-       		
-       		   printf("\n All Files Average CR(Iniform Header) %f CR(Truncated Header) %f\n",CRU,CRT);
+        	std::string config_file = "4,4,2,1,1,0,-1";
+       		L2SB_MITBIH_TEST(1, config_file.data());
+
+       		printf("\n All Files Average CR(Iniform Header) %f CR(Truncated Header) %f\n",CRU,CRT);
       	  }
 
 	/////////////////////////////////////////
