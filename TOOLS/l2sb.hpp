@@ -788,132 +788,133 @@ inline float test_L2SB(char * BandConfig)
     if(ResultsFile==1)
     {
     	op = fopen(OutputFile,"a");
-    	if(op==NULL) { printf("Output file error \n"); return(-1); }
+    	if(op==nullptr) { printf("Output file error \n"); return(-1); }
    
     	hop = fopen(HeaderFile,"r");
-    	if(hop==NULL) { hop = fopen(HeaderFile,"w"); }
-   	  	else { hop = NULL; }
+    	if(hop==nullptr) { hop = fopen(HeaderFile,"w"); }
+   	  	else { hop = nullptr; }
     	fprintf(op,"\n%s/%s,",FilePath,FileName);
     }
     
      
         
     
-        if(1)
+        if constexpr (true)
         {    char Line[1024];
         	 int Bands[32];
     		 int Headers[32];
     		 int b=0;
     		 
         	
-        			sprintf(Line,"%s",BandConfig);
-             			
-             			b=0;
-        			while(strstr(Line,",")!=NULL)
-        				{
-        					char * x = strstr(Line,",");
-        					
-        					x[0]=0;
-        					Bands[b++]=atoi(Line);
-        					strcpy(Line,&x[1]);
-        				}
-        				
-        				Bands[b++]=atoi(Line);
-        				Bands[b]=-1;
+        	sprintf(Line,"%s",BandConfig);
+
+            b=0;
+        	while(strstr(Line,",")!=nullptr)
+        	{
+        		char * x = strstr(Line,",");
+
+        		x[0]=0;
+        		Bands[b++]=atoi(Line);
+        		strcpy(Line,&x[1]);
+        	}
+
+        	Bands[b++]=atoi(Line);
+        	Bands[b]=-1;
         				
         			//for(int i=0;i<b;i++) { printf("%02d - ",Bands[i]); }
         			
         		
-        		int Hcount = b;
-        		int Hwidth =  (log2(Hcount)+1);
-        		
-        		if(Hwidth < 0){ Hwidth = 0;}
-      
-         		////////////////////////////////////////
-        		// compression with truncated headers
-        		  
-        		    if(Hcount<=MaxBands)
-                   	    {   
-                   		printf("\r YPERM %03d (H%d,%d) ) BANDS: ",permcount,Hwidth,Hcount);
-                	   
-                   	        for(int i=0;i<b;i++) { if(Bands[i]<0){break;} printf("%d, ",Bands[i]); }
-                   	        printf(" -- ");
-                   	    }  
-                   	    
-        		   if((Hcount<=MaxBands)&&(TruncatedHeaders==1))
-        		   	{
-        		   	   TruncatedBinary(Headers,b);
-        		   	   
-        		   	   printf("TH ");
-        		   	   for(int i=0;i<b;i++) { if(Bands[i]<0){break;} printf("%d, ",Headers[i]); }
-        		   	   
-        		   	   CR[0] = L2SB_MultiCompression(Bands,Headers);       		           
-                   		   if(CR[0]>CRmax[0]) { CRmax[0] = CR[0]; }
-                   		   if(CR[0]<CRmin[0]) { CRmin[0] = CR[0]; }
-                 		}
-                 	
-                 	   
-                   	   
-                   	   
-                   	   if((Hcount<=MaxBands)&&(UniformHeaders==1))
-        		      {
-                   		  UniformBinary(Headers,b);
-                   		  printf("UH: ");
-                   		  for(int i=0;i<b;i++) { if(Bands[i]<0){break;} printf("%d, ",Headers[i]); }
-                   		  
-        		   	  CR[1] = L2SB_MultiCompression(Bands,Headers);       		           
-                   		  if(CR[1]>CRmax[1]) { CRmax[1] = CR[1]; }
-                   		  if(CR[1]<CRmin[1]) { CRmin[1] = CR[1]; }
-                   	      }
-	
-                //////////////////////////////////////
-                // outout progress for monitoring
-                     
-                   if(Hcount<=MaxBands)
-                   	{   
-                   		//printf("\r YPERM %03d (H%d,%d) ) [T=d%][ ",permcount,Hwidth,Hcount);
-                
-                   		//for(int i=0;i<b;i++) { if(Bands[i]<0){break;} printf("%d, ",Bands[i]); }
-                   		//printf(" -- ");
-                   		//for(int i=0;i<b;i++) { if(Bands[i]<0){break;} printf("%d, ",Headers[i]); }
-                	
-                   		//printf("\n");
-                   
-                   		if(TruncatedHeaders==1) 
-                   		{ printf(" TB: CR[%5.3f] Min[%5.3f] Max[%5.3f]",CR[0],CRmin[0],CRmax[0]); }
-                   		if(UniformHeaders==1)   
-                   		{ printf(" UB: CR[%5.3f] Min[%5.3f] Max[%5.3f]",CR[1],CRmin[1],CRmax[1]); }
-                                printf("\n");
-                                
-                		if(ResultsFile==1)
-                			{
-                	   			if(TruncatedHeaders==1) 
-                	   			{
-                	   				if(hop!=NULL) 
-                					{ fprintf(hop,"TB%03d.{",permcount); 
-                	   				  for(int i=0;i<b;i++) { if(Bands[i]<0){break;} 
-                	   				  fprintf(hop,"%d-",Bands[i]); }  
-                	   				  fprintf(hop,"},");
-                	   				}
-                	   				
-                	   				fprintf(op,"%5.3f,",CR[0]);
+        	int Hcount = b;
+        	int Hwidth =  (log2(Hcount)+1);
+
+        	if(Hwidth < 0)
+        		{ Hwidth = 0;}
+
+         	////////////////////////////////////////
+        	// compression with truncated headers
+
+            if(Hcount<=MaxBands)
+            {
+            printf("\r YPERM %03d (H%d,%d) ) BANDS: ",permcount,Hwidth,Hcount);
+
+                for(int i=0;i<b;i++) { if(Bands[i]<0){break;} printf("%d, ",Bands[i]); }
+                printf(" -- ");
+            }
+
+        	if((Hcount<=MaxBands)&&(TruncatedHeaders==1))
+        	{
+	           TruncatedBinary(Headers,b);
+
+	           printf("TH ");
+	           for(int i=0;i<b;i++) { if(Bands[i]<0){break;} printf("%d, ",Headers[i]); }
+
+	           CR[0] = L2SB_MultiCompression(Bands,Headers);
+	               if(CR[0]>CRmax[0]) { CRmax[0] = CR[0]; }
+	               if(CR[0]<CRmin[0]) { CRmin[0] = CR[0]; }
+            }
+
+
+
+
+                if((Hcount<=MaxBands)&&(UniformHeaders==1))
+        	    {
+                   	  UniformBinary(Headers,b);
+                   	  printf("UH: ");
+                   	  for(int i=0;i<b;i++) { if(Bands[i]<0){break;} printf("%d, ",Headers[i]); }
+
+        		  CR[1] = L2SB_MultiCompression(Bands,Headers);
+                   	  if(CR[1]>CRmax[1]) { CRmax[1] = CR[1]; }
+                   	  if(CR[1]<CRmin[1]) { CRmin[1] = CR[1]; }
+				}
+
+            //////////////////////////////////////
+            // outout progress for monitoring
+
+               if(Hcount<=MaxBands)
+                {
+                   	//printf("\r YPERM %03d (H%d,%d) ) [T=d%][ ",permcount,Hwidth,Hcount);
+
+                   	//for(int i=0;i<b;i++) { if(Bands[i]<0){break;} printf("%d, ",Bands[i]); }
+                   	//printf(" -- ");
+                   	//for(int i=0;i<b;i++) { if(Bands[i]<0){break;} printf("%d, ",Headers[i]); }
+
+                   	//printf("\n");
+
+                   	if(TruncatedHeaders==1)
+                   	{ printf(" TB: CR[%5.3f] Min[%5.3f] Max[%5.3f]",CR[0],CRmin[0],CRmax[0]); }
+                   	if(UniformHeaders==1)
+                   	{ printf(" UB: CR[%5.3f] Min[%5.3f] Max[%5.3f]",CR[1],CRmin[1],CRmax[1]); }
+                            printf("\n");
+
+                	if(ResultsFile==1)
+                		{
+                	   		if(TruncatedHeaders==1)
+                	   		{
+                	   			if(hop!=nullptr)
+                				{ fprintf(hop,"TB%03d.{",permcount);
+                	   			  for(int i=0;i<b;i++) { if(Bands[i]<0){break;}
+                	   			  fprintf(hop,"%d-",Bands[i]); }
+                	   			  fprintf(hop,"},");
                 	   			}
-                	   
-                	   			if(UniformHeaders==1) 
-                	   			{
-                	   				if(hop!=NULL) 
-                					{ 
-                					  fprintf(hop,"UB%03d.{",permcount); 
-                	   				  for(int i=0;i<b;i++) { if(Bands[i]<0){break;} 		
-                	   				  fprintf(hop,"%d-",Bands[i]); }  
-                	   				  fprintf(hop,"},");
-                	   				}
-                	   				
-                	   				fprintf(op,"%5.3f,",CR[1]);
+
+                	   			fprintf(op,"%5.3f,",CR[0]);
+                	   		}
+
+                	   		if(UniformHeaders==1)
+                	   		{
+                	   			if(hop!=NULL)
+                				{
+                				  fprintf(hop,"UB%03d.{",permcount);
+                	   			  for(int i=0;i<b;i++) { if(Bands[i]<0){break;}
+                	   			  fprintf(hop,"%d-",Bands[i]); }
+                	   			  fprintf(hop,"},");
                 	   			}
-                			}                			
-                			 
-                }
+
+                	   			fprintf(op,"%5.3f,",CR[1]);
+                	   		}
+                		}
+
+            }
              
 			
 			

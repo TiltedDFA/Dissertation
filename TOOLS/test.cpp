@@ -4,13 +4,13 @@
 void L2SB_BONN_TEST(int O, int S, int H);
 void L2SB_MITBIH_TEST(int Term, char * BandConfig);
 
-float CRU =0;
-float CRT =0;
+float compression_ratio_uniform_headers =0;
+float compression_ratio_truncated_headers =0;
 
 
 int n=12;
 
-int main(void)
+int main()
 {		
 		
 	printf("\n");
@@ -41,7 +41,7 @@ int main(void)
         
        float CR = 0;
        
-        if(1) // MITBIH ECG
+        if constexpr (true) // MITBIH ECG
       	{
       		SetFileStep(1);			// test every nth file, 1 = all files //
 	    	SetMaxBands(-1);		// -1 do not limit the number of bands, n = max bands //
@@ -62,7 +62,7 @@ int main(void)
         	std::string config_file = "4,4,2,1,1,0,-1";
        		L2SB_MITBIH_TEST(1, config_file.data());
 
-       		printf("\n All Files Average CR(Iniform Header) %f CR(Truncated Header) %f\n",CRU,CRT);
+       		printf("\n All Files Average CR(Iniform Header) %f CR(Truncated Header) %f\n",compression_ratio_uniform_headers,compression_ratio_truncated_headers);
       	  }
 
 	/////////////////////////////////////////
@@ -76,8 +76,8 @@ int main(void)
 
 void L2SB_MITBIH_TEST(int Term, char * BandConfig)
 {
-   CRU=0;
-   CRT=0;
+   compression_ratio_uniform_headers=0;
+   compression_ratio_truncated_headers=0;
    
 	///////////////////////////////////////////////////////
 	// Get List of files and run  processing scenario   	
@@ -95,7 +95,7 @@ void L2SB_MITBIH_TEST(int Term, char * BandConfig)
 	   		
 	   	for(int i=0; i < FileCount; i=i+FileStep)
 	     	{	   
-	     	  if(strstr(FileList[i],".csv")!=NULL)
+	     	  if(strstr(FileList[i],".csv") != nullptr)
 	     	  {
 	            strcpy(FileName,FileList[i]);
 		        ReadDataFile(FilePath,FileName,Term); 
@@ -105,8 +105,8 @@ void L2SB_MITBIH_TEST(int Term, char * BandConfig)
 		     	{ 
 		     	   
 		     	   test_L2SB(BandConfig); 
-		     	   CRU += CRUB;
-		     	   CRT += CRTB;
+		     	   compression_ratio_uniform_headers += CRUB;
+		     	   compression_ratio_truncated_headers += CRTB;
 		     	}	
 		    
 		        c++;
@@ -115,7 +115,7 @@ void L2SB_MITBIH_TEST(int Term, char * BandConfig)
 		            
 	     	}
 	 	   
-	CRU = CRU / (float)c;
-	CRT = CRT / (float)c;	
+	compression_ratio_uniform_headers = compression_ratio_uniform_headers / (float)c;
+	compression_ratio_truncated_headers = compression_ratio_truncated_headers / (float)c;
 }
 
