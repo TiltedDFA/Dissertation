@@ -8,4 +8,8 @@ include_directories(TOOLS)
 set(CMAKE_CXX_FLAGS_DEBUG "-ggdb -Wall -Wpedantic")
 add_executable(L2SB_LIB
     TOOLS/l2sb.hpp
-    TOOLS/test.cpp)
+    TOOLS/test.cpp
+        TOOLS/Genetics.cpp
+        TOOLS/Genetics.hpp
+        TOOLS/Gene.cpp
+        TOOLS/Gene.hpp)

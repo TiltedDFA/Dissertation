@@ -15,7 +15,7 @@ inline int Unipolar         =  0;
 inline int ShowQuantisation =  0;
 inline int ResultsFile      =  1;
 
-inline int TESTMODE=0;
+inline int TEST_MODE=0;
 #define TEST_COMPRESSION 1
 
 #define MAX_DATA (4*1024*1024)
@@ -39,7 +39,7 @@ void SetTruncatedHeaders(int x);
 void SetUniformHeaders(int x);
 void SetFileStep(int x);
 void SetDataLimit(long int x);
-void SetBitWidth(int x);
+void SetBitWidth(int n);
 void SetOutputFile(char* Str);
 void SetHeaderFile(char* Str);
 void SetUnipolarData();
@@ -102,7 +102,7 @@ inline int Init()
 	return(1);
 }
 
-void Cleanup()
+inline void Cleanup()
 {
 	std::free(Data);
 }
@@ -136,25 +136,23 @@ inline void GetFileList()
     system(Str);
 }
 
-void ReadDataFile(char * Path, char * FileName)
+inline void ReadDataFile(char * Path, char * FileName)
 {
 	ReadDataFile(Path, FileName, 0);
 }
 
 
-void ReadDataFile(char * Path, char * FileName, int Term)
+inline void ReadDataFile(char * Path, char * FileName, int Term)
 {
-    FILE * ip;
-    char Str[1024];
-    float f;
-    
-    int Max=0;
+	char Str[1024];
+
+	int Max=0;
     int Val=0;
     
     sprintf(Str,"%s/%s",Path,FileName);
    
     
-    ip = fopen(Str,"r");
+    FILE* ip = fopen(Str, "r");
     if(ip == nullptr) {printf("File Error %s", Str); return; }
     
     printf(" File import : %s\n",Str);
@@ -174,7 +172,7 @@ void ReadDataFile(char * Path, char * FileName, int Term)
            		c++;
         	}
         	
-        f = atof(Str);
+        float f = atof(Str);
         
         if(feof(ip)!=0) { break; }
         Val =  QuantiseData(f);
@@ -222,19 +220,19 @@ inline int QuantiseBipolarData(float f)
 
 inline int QuantiseUnipolarData(float f)
 {
-       float q =  f;
-       
-       float Range = pow(2,Quantisation);
-       float Rescale = Range/DataRange;
-       
-       q = q * Rescale;
-       
-       if(ShowQuantisation)
-       	{
-          printf("UNIPOLAR %5.2f Converted %5.2f. Rescale=%5.2f Range(%dbits)=%3.2f DataRange=%3.2f \n",f,q,Rescale, Quantisation,Range,DataRange); 
-		}
+	float q =  f;
 
-       return (int)q;
+	const float Range = pow(2,Quantisation);
+	float Rescale = Range/DataRange;
+
+	q = q * Rescale;
+
+	if(ShowQuantisation)
+    {
+		printf("UNIPOLAR %5.2f Converted %5.2f. Rescale=%5.2f Range(%dbits)=%3.2f DataRange=%3.2f \n",f,q,Rescale, Quantisation,Range,DataRange);
+	}
+
+	return static_cast<int>(q);
 }
 
 inline void L2SB()
@@ -253,17 +251,17 @@ inline void L2SB()
     if(ResultsFile==1)
     {
     	op = fopen(OutputFile,"a");
-   		 if(op==NULL) { printf("Output file error \n"); return; }
+   		 if(op==nullptr) { printf("Output file error \n"); return; }
     
     	hop = fopen(HeaderFile,"r");
-    	if(hop==NULL) { hop = fopen(HeaderFile,"w"); }
-    	else { hop = NULL; }
+    	if(hop==nullptr) { hop = fopen(HeaderFile,"w"); }
+    	else { hop = nullptr; }
     
     	fprintf(op,"\n%s/%s,",FilePath,FileName);
     }
     
     perms = fopen("perms.txt","r");
-    if(perms==NULL) { printf("permutation file error \n"); return; }
+    if(perms==nullptr) { printf("permutation file error \n"); return; }
      
         
     
@@ -280,7 +278,7 @@ inline void L2SB()
         			fgets(Line,1020,perms);
         			b=0;
         		    	
-        			while(strstr(Line,",")!=NULL)
+        			while(strstr(Line,",")!=nullptr)
         				{
         					char * x = strstr(Line,",");
         					
