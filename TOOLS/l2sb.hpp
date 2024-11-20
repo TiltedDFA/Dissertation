@@ -12,7 +12,7 @@ inline int TruncatedHeaders = 1;
 inline int UniformHeaders = 1;
 inline int FileStep = 1;
 inline int Unipolar = 0;
-inline int ShowQuantisation = 0;
+inline int ShowQuantisation = 1;
 inline int ResultsFile = 1;
 
 inline int TEST_MODE = 0;
@@ -93,11 +93,11 @@ inline int Init()
     if (Data == nullptr)
     {
         printf(" Memory allocation problem \n");
-        return (0);
+        return 0;
     }
 
     printf(" Allocated memory %5.2f Mbytes \n", static_cast<double>(MAX_DATA) / (1024.0 * 1024.0));
-    return (1);
+    return 1;
 }
 
 inline void Cleanup()
@@ -117,7 +117,7 @@ inline void GetFileList()
 
     if (ip == nullptr) { return; }
 
-    while (1)
+    while (true)
     {
         fgets(Str, 1020, ip);
 
@@ -139,7 +139,6 @@ inline void ReadDataFile(char* Path, char* FileName)
 {
     ReadDataFile(Path, FileName, 0);
 }
-
 
 inline void ReadDataFile(char* Path, char* FileName, int Term)
 {
@@ -206,21 +205,21 @@ inline int QuantiseData(float f)
     }
 }
 
-inline int QuantiseBipolarData(float f)
+inline int QuantiseBipolarData(const float f)
 {
     float q = f + DataRange;
 
-    float Range = pow(2, Quantisation);
-    float Rescale = Range / DataRange / 2.0;
+    const auto Range = static_cast<float>(pow(2, Quantisation));
+    const float Rescale = Range / DataRange / 2.0f;
 
     q = q * Rescale;
 
-    // printf("BIIPOLAR Read %5.2f Converted %5.2f. Rescale=%5.2f Range(%dbits)=%3.2f DataRange=%3.2f \n",f,q,Rescale, Quantisation,Range,DataRange);
+    printf("BIPOLAR Read %5.2f Converted %5.2f. Rescale=%5.2f Range(%dbits)=%3.2f DataRange=%3.2f \n",f,q,Rescale, Quantisation,Range,DataRange);
 
-    return (int)q;
+    return static_cast<int>(q);
 }
 
-inline int QuantiseUnipolarData(float f)
+inline int QuantiseUnipolarData(const float f)
 {
     float q = f;
 
@@ -229,11 +228,11 @@ inline int QuantiseUnipolarData(float f)
 
     q = q * Rescale;
 
-    if (ShowQuantisation)
-    {
+    // if (ShowQuantisation)
+    // {
         printf("UNIPOLAR %5.2f Converted %5.2f. Rescale=%5.2f Range(%dbits)=%3.2f DataRange=%3.2f \n", f, q, Rescale,
                Quantisation, Range, DataRange);
-    }
+    // }
 
     return static_cast<int>(q);
 }
@@ -275,7 +274,7 @@ inline void L2SB()
     }
 
 
-    if (1)
+    if constexpr (true)
     {
         char Line[2048];
         int Bands[32];
@@ -474,7 +473,7 @@ inline float L2SB_MultiCompression(int* Band, int* Headers)
 
     if (test == 1) { printf("\n"); }
 
-    if (1)
+    if constexpr (true)
     {
         for (int x = 0; x < 32; x++)
         {
@@ -629,12 +628,12 @@ inline void RPerms(int n)
     static int B[32];
     static int Index = B[0];
     static int permcount = 0;
-    static FILE* op = NULL;
+    static FILE* op = nullptr;
 
-    if (op == NULL)
+    if (op == nullptr)
     {
         op = fopen("perms.txt", "w");
-        if (op == NULL)
+        if (op == nullptr)
         {
             printf("PERM FILE ERROR \n");
             exit(0);
@@ -660,7 +659,7 @@ inline void RPerms(int n)
         return;
     }
 
-    if (0)
+    if constexpr (false)
     {
         printf("-%03d- perm.%03d ", c, permcount);
         for (int i = 1; i <= Index; i++) { printf("[%02d] ", B[i]); }
@@ -808,8 +807,8 @@ inline void ReportConfig()
     printf(" Header File %s\n", HeaderFile);
 }
 
-float CRUB = 0;
-float CRTB = 0;
+inline float CRUB = 0;
+inline float CRTB = 0;
 
 inline float test_L2SB(char* BandConfig)
 {
@@ -962,7 +961,7 @@ inline float test_L2SB(char* BandConfig)
 
                 if (UniformHeaders == 1)
                 {
-                    if (hop != NULL)
+                    if (hop != nullptr)
                     {
                         fprintf(hop, "UB%03d.{", permcount);
                         for (int i = 0; i < b; i++)

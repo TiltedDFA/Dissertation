@@ -47,7 +47,7 @@ int main()
         // SetDataLimit(100000);		// -1 read all file, otherwise read n values //
         SetDataLimit(-1); // -1 read all file, otherwise read n values //
         SetUnipolarData(); // MIT data is unipolar //
-        SetTruncatedHeaders(0);
+        SetTruncatedHeaders(1);
         SetUniformHeaders(1);
 
         std::string output_file = "Output/test/Datatest_UHC1.csv";
@@ -61,7 +61,7 @@ int main()
         std::string config_file = "4,4,2,1,1,0,-1";
         L2SB_MITBIH_TEST(1, config_file.data());
 
-        printf("\n All Files Average CR(Iniform Header) %f CR(Truncated Header) %f\n",
+        printf("\n All Files Average CR(Uniform Header) %f CR(Truncated Header) %f\n",
                compression_ratio_uniform_headers, compression_ratio_truncated_headers);
     }
 
