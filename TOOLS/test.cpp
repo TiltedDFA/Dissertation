@@ -111,6 +111,6 @@ void L2SB_MITBIH_TEST(int Term, char* BandConfig)
         }
     }
 
-    compression_ratio_uniform_headers = compression_ratio_uniform_headers / (float)c;
-    compression_ratio_truncated_headers = compression_ratio_truncated_headers / (float)c;
+    compression_ratio_uniform_headers = compression_ratio_uniform_headers / static_cast<float>(c);
+    compression_ratio_truncated_headers = compression_ratio_truncated_headers / static_cast<float>(c);
 }

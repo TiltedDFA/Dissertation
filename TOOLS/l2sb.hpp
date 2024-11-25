@@ -489,7 +489,7 @@ inline float L2SB_MultiCompression(int* Band, int* Headers)
 
     for (Count = 1; Count < DataCount; Count++)
     {
-        if ((Count % 250000) == 0)
+        if ((Count % 250'000) == 0)
         {
             printf("%ld\n", Count);
         }
@@ -559,7 +559,7 @@ inline float L2SB_MultiCompression(int* Band, int* Headers)
     }
 
 
-    CR = (double)(Quantisation * Count) / (double)BitCount;
+    CR = static_cast<float>(static_cast<double>(Quantisation * Count) / static_cast<double>(BitCount));
 
     if (Debug)
         printf("Raw Bits %ld , Compressed %ld %f\n", DataCount * Quantisation, BitCount, CR);
