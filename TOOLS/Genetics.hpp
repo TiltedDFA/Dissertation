@@ -11,9 +11,9 @@
 namespace Genetics
 {
 
-    void mutate();
-    void crossover();
     void select();
+    void crossover();
+    void mutate();
 
 } // Genetics
 
