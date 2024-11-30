@@ -214,7 +214,7 @@ inline int QuantiseBipolarData(const float f)
 
     q = q * Rescale;
 
-    printf("BIPOLAR Read %5.2f Converted %5.2f. Rescale=%5.2f Range(%dbits)=%3.2f DataRange=%3.2f \n",f,q,Rescale, Quantisation,Range,DataRange);
+    //printf("BIPOLAR Read %5.2f Converted %5.2f. Rescale=%5.2f Range(%dbits)=%3.2f DataRange=%3.2f \n",f,q,Rescale, Quantisation,Range,DataRange);
 
     return static_cast<int>(q);
 }
@@ -230,8 +230,8 @@ inline int QuantiseUnipolarData(const float f)
 
     // if (ShowQuantisation)
     // {
-        printf("UNIPOLAR %5.2f Converted %5.2f. Rescale=%5.2f Range(%dbits)=%3.2f DataRange=%3.2f \n", f, q, Rescale,
-               Quantisation, Range, DataRange);
+      //  printf("UNIPOLAR %5.2f Converted %5.2f. Rescale=%5.2f Range(%dbits)=%3.2f DataRange=%3.2f \n", f, q, Rescale,
+        //       Quantisation, Range, DataRange);
     // }
 
     return static_cast<int>(q);

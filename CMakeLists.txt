@@ -12,5 +12,7 @@ add_executable(L2SB_LIB
         TOOLS/Genetics.cpp
         TOOLS/Genetics.hpp
         TOOLS/Gene.cpp
-        TOOLS/Gene.hpp
-        TOOLS/l2sb_real.hpp)
+        TOOLS/Gene.hpp)
+add_executable(Real
+        TOOLS/l2sb_real.hpp
+        TOOLS/real.cpp)

@@ -85,7 +85,7 @@ void L2SB_MITBIH_TEST(int Term, char* BandConfig)
 
     ConfigTestCase(TEST_CONFIG_MITBIH_ECG);
 
-    sprintf(FilePath, "Data/MITBIH");
+    sprintf(FilePath, "../Data/MITBIH");
 
     GetFileList();
 
