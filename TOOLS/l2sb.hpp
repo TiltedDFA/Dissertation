@@ -860,7 +860,7 @@ inline float test_L2SB(char* BandConfig)
         Bands[b++] = atoi(Line);
         Bands[b] = -1;
 
-        //for(int i=0;i<b;i++) { printf("%02d - ",Bands[i]); }
+        for(int i=0;i<b;i++) { printf("%02d - ",Bands[i]); }
 
 
         int Hcount = b;

@@ -43,7 +43,8 @@ public:
     {
         BitWidth,
         DataRange,
-        Quantisation
+        Quantisation,
+        FileDataReadLimit, // previously known as data_limit
     };
 public:
     L2SBConfig():config_(){};
@@ -60,15 +61,23 @@ public:
 private:
     std::unordered_map<Params, int64_t> config_;
 };
-
+struct VecItPair
+{
+    VecItPair()=delete;
+    constexpr VecItPair(std::vector<uint32_t>::iterator const& start, std::vector<uint32_t>::iterator const& end):
+        start_(start),
+        end_(end)
+        {}
+    std::vector<uint32_t>::iterator const start_;
+    std::vector<uint32_t>::iterator const end_;
+};
 template<FileDataType type>
 class FileData
 {
 public:
-    explicit FileData(const std::string_view path, L2SBConfig const& config, const int64_t data_limit = std::numeric_limits<int64_t>::max()):
+    explicit FileData(const std::string_view path, L2SBConfig const& config):
         path_to_files_(path),
         config_(config),
-        data_limit_(data_limit),
         file_data_()
         {}
     [[nodiscard]]
@@ -91,25 +100,35 @@ public:
         //get rid of warnings
         return std::numeric_limits<uint32_t>::max();
     }
+
+    /// 
+    /// @param term the term within a line of the csv file that we are interested in (the data)
     void ReadCSVFiles(uint32_t const term)
     {
         auto const files = FindCSVFiles();
+        auto const data_limit = config_.GetParam(L2SBConfig::Params::FileDataReadLimit);
         for (auto const& f : files)
         {
             std::ifstream file(f);
             std::string line;
             uint64_t data_count{};
             uint32_t data_max{};
-            while (std::getline(file, line) && data_count < data_limit_)
+            std::vector<uint32_t>::iterator file_start_it = file_data_.begin() + file_data_.size();
+            while (std::getline(file, line) && data_count < data_limit)
             {
-                const double data_term = std::stod(SplitCSVLine(line)AT(term));
-                // PRINTNL(std::format("data before quant: {}, {}", data_term, std::stod(data_term)));
+                double const data_term = std::stod(SplitCSVLine(line)AT(term));
                 data_max = std::max(data_max, static_cast<uint32_t>(data_term));
-                const uint32_t data = QuantiseData(data_term);
+                uint32_t const data = QuantiseData(data_term);
                 file_data_.push_back(data);
                 ++data_count;
             }
-            PRINTNL(std::format("File Imported{}, {} data points quantised, data range <0-{}>", f, data_count, data_max));
+            std::vector<uint32_t>::iterator file_end_it = file_data_.begin() + file_data_.size();
+            PRINTNL(std::format("File Imported \"{}\", {} data points quantised, data range <0-{}>", f, data_count, data_max));
+
+            //checking the file contained a non-zero amount of data
+            if (file_start_it == file_end_it) continue;
+            // file_name_dat_map_.at(f) = std::move(VecItPair(file_start_it, file_end_it));
+            file_name_dat_map_.insert(std::make_pair(f, VecItPair(file_start_it, file_end_it)));
         }
         PRINTNL(std::format("Read: {:5.2f} MB of data", static_cast<double>(sizeof(uint32_t) * file_data_.size()) / ByteToMB));
     }
@@ -143,7 +162,10 @@ private:
 private:
     std::string const path_to_files_;
     L2SBConfig const& config_;
-    int64_t const data_limit_;
     std::vector<uint32_t> file_data_;
+
+    //maps individual files to their respective data
+    std::unordered_map<std::string, VecItPair> file_name_dat_map_;
 };
+
 #endif //L2SB_REAL_HPP
