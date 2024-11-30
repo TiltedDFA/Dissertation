@@ -26,7 +26,9 @@
 #include <fstream>
 #include <format>
 #include <iostream>
+#include <cassert>
 #include <cmath>
+#include <unordered_map>
 
 constexpr double ByteToMB = 1024.0 * 1024.0;
 enum class FileDataType
@@ -34,31 +36,30 @@ enum class FileDataType
     Unipolar = 0,
     Bipolar
 };
-
-//ditching this design pattern since it would be hard to tell if calling a getter before using a setter,
-//also wanting to avoid a messy ctor with a lotta params.
 class L2SBConfig
 {
 public:
-    L2SBConfig()=default;
+    enum class Params
+    {
+        BitWidth,
+        DataRange,
+        Quantisation
+    };
+public:
+    L2SBConfig():config_(){};
 
-    L2SBConfig& SetBitWidth(uint32_t const bit_width){ bit_width_ = bit_width; return *this; }
-    L2SBConfig& SetDataRange(double const dr) { data_range_ = dr; return *this; }
-    L2SBConfig& SetQuantisation(double const q) { quantisation_ = q; return *this; }
-
-    [[nodiscard]]
-    uint32_t bit_width() const { return bit_width_; }
-    [[nodiscard]]
-    double data_range() const { return data_range_; }
-    [[nodiscard]]
-    double quantisation() const { return quantisation_; }
+    void SetParam(Params const param, int64_t const value)
+    {
+        config_[param]  = value;
+    }
+    int64_t GetParam(Params const param) const
+    {
+        assert(("ERROR, uninitialized parameter attempted to be accessed", config_.contains(param)));
+        return config_.at(param);
+    }
 private:
-    uint32_t bit_width_;
-    double data_range_;
-    double quantisation_;
+    std::unordered_map<Params, int64_t> config_;
 };
-
-
 
 template<FileDataType type>
 class FileData
@@ -73,8 +74,8 @@ public:
     [[nodiscard]]
     constexpr uint32_t QuantiseData(double data) const
     {
-        double constexpr data_range = 2048.0;
-        auto const quantisation = static_cast<double>(config_.bit_width());
+        auto const data_range = static_cast<double>(config_.GetParam(L2SBConfig::Params::DataRange));
+        auto const quantisation = static_cast<double>(config_.GetParam(L2SBConfig::Params::Quantisation));
         if constexpr (type == FileDataType::Unipolar)
         {
             data *= std::pow(2.0, quantisation) / data_range;
