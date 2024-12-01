@@ -16,3 +16,4 @@ add_executable(L2SB_LIB
 add_executable(Real
         TOOLS/l2sb_real.hpp
         TOOLS/real.cpp)
+target_compile_options(Real PUBLIC -Wall -Wextra -Wpedantic)

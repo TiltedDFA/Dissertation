@@ -5,13 +5,17 @@
 
 int main()
 {
-    L2SBConfig config{};
-    config.SetParam(L2SBConfig::Params::Quantisation, 11);
-    config.SetParam(L2SBConfig::Params::BitWidth, 12);
-    config.SetParam(L2SBConfig::Params::DataRange, 2048);
-    config.SetParam(L2SBConfig::Params::FileDataReadLimit, std::numeric_limits<int64_t>::max());
+    GeneralParameters config{};
+    GeneralParameters::Set(GeneralParameters::Params::BitWidth, 12);
+    GeneralParameters::Set(GeneralParameters::Params::Quantisation, 11);
+    GeneralParameters::Set(GeneralParameters::Params::DataRange, 2048);
+    GeneralParameters::Set(GeneralParameters::Params::FileDataReadLimit, std::numeric_limits<int64_t>::max());
+    GeneralParameters::Set(GeneralParameters::Params::MaxBands, std::numeric_limits<int64_t>::max());
 
-    FileData<FileDataType::Unipolar> files("../Data/MITBIH", config);
+    FileData<FileDataType::Unipolar> files("../Data/MITBIH");
     files.ReadCSVFiles(1);
+
+    BandConfig random_config(5, {4,4,2,1,1}, {3,3,3,3,3});
+
     std::cin.get();
 }

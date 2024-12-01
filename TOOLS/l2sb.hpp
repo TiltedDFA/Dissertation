@@ -15,7 +15,7 @@ inline int Unipolar = 0;
 inline int ShowQuantisation = 1;
 inline int ResultsFile = 1;
 
-inline int TEST_MODE = 0;
+inline int TEST_MODE = 1;
 #define TEST_COMPRESSION 1
 
 #define MAX_DATA (4*1024*1024)
@@ -447,7 +447,7 @@ inline float L2SB_MultiCompression(int* Band, int* Headers)
     long int Count;
 
     int Debug = L2SBCompression_Debug;
-    int test = 0;
+    int test = 1;
 
     ////////////////////////////////////////////
     // assume first word is full-length
