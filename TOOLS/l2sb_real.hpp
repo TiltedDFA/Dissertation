@@ -39,7 +39,8 @@ enum class FileDataType
     Unipolar = 0,
     Bipolar
 };
-class GeneralParameters
+//Short for GeneralParameters, shorted as it was getting rather verbose
+class GenPar
 {
 public:
     enum class Params
@@ -51,7 +52,7 @@ public:
         MaxBands,
     };
 public:
-    GeneralParameters()
+    GenPar()
     {
         assert(instance_ == nullptr);
         instance_ = this;
@@ -70,7 +71,7 @@ public:
         return instance_->config_.at(param);
     }
 private:
-    static inline GeneralParameters* instance_ = nullptr;
+    static inline GenPar* instance_ = nullptr;
     std::unordered_map<Params, int64_t> config_;
 };
 class BandConfig
@@ -84,11 +85,11 @@ public:
     {
         //verify that we have a "legal" configuration
         assert(((void)"Mismatched header - band config sizes", header_config_.size() == band_config_.size()));
-        assert(((void)"Configuration band number exceeds the maximum", band_config_.size() <= GeneralParameters::Get(GeneralParameters::Params::MaxBands)));
+        assert(((void)"Configuration band number exceeds the maximum", band_config_.size() <= GenPar::Get(GenPar::Params::MaxBands)));
         assert(
             ((void)"Mismatched band number-bit size count",
-            std::accumulate(band_config_.begin(), band_config_.end(), 0U) ==
-            GeneralParameters::Get(GeneralParameters::Params::BitWidth))
+            std::accumulate(band_config_.cbegin(), band_config_.cend(), 0U) ==
+            GenPar::Get(GenPar::Params::BitWidth))
             );
     }
     [[nodiscard]]
@@ -111,8 +112,8 @@ public:
     [[nodiscard]]
     static constexpr uint32_t QuantiseData(double data)
     {
-        auto const data_range = static_cast<double>(GeneralParameters::Get(GeneralParameters::Params::DataRange));
-        auto const quantisation = static_cast<double>(GeneralParameters::Get(GeneralParameters::Params::Quantisation));
+        auto const data_range = static_cast<double>(GenPar::Get(GenPar::Params::DataRange));
+        auto const quantisation = static_cast<double>(GenPar::Get(GenPar::Params::Quantisation));
         if constexpr (type == FileDataType::Unipolar)
         {
             data *= std::pow(2.0, quantisation) / data_range;
@@ -134,7 +135,7 @@ public:
     void ReadCSVFiles(uint32_t const term)
     {
         auto const files = FindCSVFiles();
-        std::size_t const data_limit = GeneralParameters::Get(GeneralParameters::Params::FileDataReadLimit);
+        std::size_t const data_limit = GenPar::Get(GenPar::Params::FileDataReadLimit);
         for (auto const& f : files)
         {
             std::ifstream file(f);
@@ -194,7 +195,34 @@ static double FindCompressionRatio(FileData<type> const& file_data, BandConfig c
     std::vector<uint32_t> const& bands   = band_config.GetBandConfig();
     std::vector<uint32_t> const& headers = band_config.GetHeaderConfig();
     std::vector<uint32_t> const& data = file_data.GetFileData();
-    uint64_t bit_count = headers.back() + GeneralParameters::Get(GeneralParameters::Params::Quantisation);
-
+    uint32_t const quantisation = GenPar::Get(GenPar::Params::Quantisation);
+    uint64_t bit_count = headers.back() + GenPar::Get(GenPar::Params::Quantisation);
+    PRINTNL(std::format("headers.back: {}", headers.back()));
+    for (auto it = data.cbegin(); it != (data.cend() - 1); ++it)
+    {
+        uint32_t difference = *it ^ *(it + 1);
+        for (int i = 0; i <= quantisation; ++i)
+        {
+            difference |= difference >> 1;
+        }
+        uint32_t q_point = quantisation;
+        uint32_t header = headers.back();
+        std::size_t i{};
+        for (; i < bands.size(); ++i)
+        {
+            //if 0
+            if (!(difference & 1U << (q_point - 1)))  break;
+            q_point -= bands[i];
+            header = headers[i];
+        }
+        bit_count += header + std::accumulate(bands.cbegin(), bands.cbegin() + i, 0U);
+        // PRINTNL(std::format("bit_count: {}", bit_count));
+    }
+    PRINTNL(quantisation);
+    PRINTNL(data.size());
+    PRINTNL(quantisation * data.size());
+    PRINTNL(bit_count);
+    compression_ratio = static_cast<double>(quantisation * data.size()) / static_cast<double>(bit_count);
+    return compression_ratio;
 }
 #endif //L2SB_REAL_HPP
