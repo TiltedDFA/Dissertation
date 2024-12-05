@@ -5,15 +5,17 @@
 #ifndef L2SB_REAL_HPP
 #define L2SB_REAL_HPP
 
-#define LTWOSB_DEBUG 1
+#define LTWOSB_DEBUG 0
 
 #if LTWOSB_DEBUG == 1
 #define PRINTNL(x) std::cout << (x) << std::endl
+#define PRINTNLF(x, y) std::cout << std::format((x),(y)) << std::endl
 #define ERRNL(x) std::cerr << (x) << std::endl
 #define AT(x) .at((x))
 #else
 #define NDEBUG
 #define PRINTNL(x)
+#define PRINTNLF(x, y)
 #define ERRNL(x)
 #define AT(x) [(x)]
 #endif
@@ -60,13 +62,13 @@ public:
 
     static void Set(Params const param, int64_t const value)
     {
+        //void casting to bypass unused error as it is intentional
         assert(((void)"Attempted to access uninitialized singleon", (instance_ != nullptr)));
         instance_->config_[param]  = value;
     }
     static int64_t Get(Params const param)
     {
         assert(((void)"Attempted to access uninitialized singleon", (instance_ != nullptr)));
-        //void casting to bypass unused error as is intentional
         assert(((void)"ERROR, uninitialized parameter attempted to be accessed", instance_->config_.contains(param)));
         return instance_->config_.at(param);
     }
@@ -74,15 +76,28 @@ private:
     static inline GenPar* instance_ = nullptr;
     std::unordered_map<Params, int64_t> config_;
 };
+enum class HeaderType
+{
+    Uniform,
+    Truncated
+};
 class BandConfig
 {
 public:
     BandConfig()=delete;
-    BandConfig(uint32_t const num_bands,std::vector<uint32_t>&& band_config, std::vector<uint32_t>&& header_config):
+    BandConfig(uint32_t const num_bands,std::vector<uint32_t>&& band_config, HeaderType const header_type):
         bands_(num_bands),
-        band_config_(std::move(band_config)),
-        header_config_(std::move(header_config))
+        band_config_(band_config.cbegin(), band_config.cend()),
+        header_config_(band_config.size())
     {
+        if (header_type == HeaderType::Uniform)
+        {
+
+        }
+        else
+        {
+
+        }
         //verify that we have a "legal" configuration
         assert(((void)"Mismatched header - band config sizes", header_config_.size() == band_config_.size()));
         assert(((void)"Configuration band number exceeds the maximum", band_config_.size() <= GenPar::Get(GenPar::Params::MaxBands)));
@@ -170,6 +185,7 @@ private:
                 files.push_back(entry.path().string());
             }
         }
+        std::ranges::sort(files);
         return files;
     }
 
@@ -188,6 +204,15 @@ private:
     std::string const path_to_files_;
     std::vector<uint32_t> file_data_;
 };
+template<typename T>
+requires std::is_integral_v<T>
+constexpr uint8_t FindMS1B(T inp)
+{
+    uint8_t count{};
+    while (inp >>= 1)
+        ++count;
+    return count + bool(count);
+}
 template <FileDataType type>
 static double FindCompressionRatio(FileData<type> const& file_data, BandConfig const& band_config)
 {
@@ -195,34 +220,28 @@ static double FindCompressionRatio(FileData<type> const& file_data, BandConfig c
     std::vector<uint32_t> const& bands   = band_config.GetBandConfig();
     std::vector<uint32_t> const& headers = band_config.GetHeaderConfig();
     std::vector<uint32_t> const& data = file_data.GetFileData();
-    uint32_t const quantisation = GenPar::Get(GenPar::Params::Quantisation);
-    uint64_t bit_count = headers.back() + GenPar::Get(GenPar::Params::Quantisation);
+    uint64_t const data_bit_width = GenPar::Get(GenPar::Params::BitWidth);
+    // uint64_t bit_count = headers.back() + quantisation;
+    uint64_t bit_count{};
+
     PRINTNL(std::format("headers.back: {}", headers.back()));
-    for (auto it = data.cbegin(); it != (data.cend() - 1); ++it)
+    for (auto it = data.cbegin(); it != std::prev(data.cend()); ++it)
     {
-        uint32_t difference = *it ^ *(it + 1);
-        for (int i = 0; i <= quantisation; ++i)
-        {
-            difference |= difference >> 1;
-        }
-        uint32_t q_point = quantisation;
-        uint32_t header = headers.back();
-        std::size_t i{};
-        for (; i < bands.size(); ++i)
-        {
-            //if 0
-            if (!(difference & 1U << (q_point - 1)))  break;
-            q_point -= bands[i];
-            header = headers[i];
-        }
-        bit_count += header + std::accumulate(bands.cbegin(), bands.cbegin() + i, 0U);
-        // PRINTNL(std::format("bit_count: {}", bit_count));
+        uint32_t const difference = *it ^ *(it + 1);
+        uint32_t const msb_loc = FindMS1B(difference);
+        uint32_t band_total{};
+        size_t idx{};
+
+        while (msb_loc > band_total)
+            band_total += bands[idx++];
+
+        bit_count += band_total + headers[idx - bool(msb_loc)];
     }
-    PRINTNL(quantisation);
+    PRINTNL(data_bit_width);
     PRINTNL(data.size());
-    PRINTNL(quantisation * data.size());
-    PRINTNL(bit_count);
-    compression_ratio = static_cast<double>(quantisation * data.size()) / static_cast<double>(bit_count);
+    PRINTNLF("uncompressed: {}", data_bit_width * data.size());
+    PRINTNLF("compressed:   {}", bit_count);
+    compression_ratio = static_cast<double>(data_bit_width * data.size()) / static_cast<double>(bit_count);
     return compression_ratio;
 }
 #endif //L2SB_REAL_HPP

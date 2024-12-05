@@ -1,7 +1,0 @@
-rm test
-cd TOOLS
-
-g++ -o test test.cpp
-rm ../test
-cp test ../
-cd ..

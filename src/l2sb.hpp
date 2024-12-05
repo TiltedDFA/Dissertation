@@ -18,7 +18,7 @@ inline int ResultsFile = 1;
 inline int TEST_MODE = 0;
 #define TEST_COMPRESSION 1
 
-#define MAX_DATA (4*1024*1024)
+#define MAX_DATA (200*1024*1024)
 
 inline int* Data;
 
@@ -29,7 +29,7 @@ inline char HeaderFile[1024] = "header.csv";
 
 inline char FileList[2048][64] = {"dummy"};
 inline int FileCount = 0;
-inline long int DataCount;
+inline long int DataCount{};
 
 inline float DataRange = 16.0;
 inline int Quantisation = 10;
@@ -63,7 +63,7 @@ int QuantiseBipolarData(float f);
 void ConfigTestCase(int Selection);
 float L2SBCompression(int b1, int b2, int b3, int b4, int h1, int h2, int h3, int h4);
 float L2SB_MultiCompression(int* Band, int* Header);
-void DecToBin(char* Bin, long int i, long int n);
+void DecToBin(char* Bin, long int val, long int quantinisation_n);
 void RPerms(int n);
 void TruncatedBinary(int* Headers, int n);
 void UniformBinary(int* Headers, int n);
@@ -568,19 +568,19 @@ inline float L2SB_MultiCompression(int* Band, int* Headers)
 }
 
 
-inline void DecToBin(char* Bin, long int i, long int n)
+inline void DecToBin(char* Bin, long int val, long int quantinisation_n)
 {
     char Tmp[1024] = "";
 
     Bin[0] = 0;
 
 
-    for (long int x = 0; x < n; x++)
+    for (long int x = 0; x < quantinisation_n; x++)
     {
-        if ((i % 2) == 0) { sprintf(Tmp, "0%s", Bin); }
+        if ((val % 2) == 0) { sprintf(Tmp, "0%s", Bin); }
         else { sprintf(Tmp, "1%s", Bin); }
         strcpy(Bin, Tmp);
-        i = i >> 1;
+        val = val >> 1;
 
         //printf("%d-%d-%d\n",i,n,x);
 
@@ -839,9 +839,9 @@ inline float test_L2SB(char* BandConfig)
 
     if constexpr (true)
     {
-        char Line[1024];
-        int Bands[32];
-        int Headers[32];
+        char Line[1024]{};
+        int Bands[32]{};
+        int Headers[32]{};
         int b = 0;
 
 

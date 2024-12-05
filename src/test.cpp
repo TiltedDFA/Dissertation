@@ -25,10 +25,10 @@ int main()
 
     if (Init() == 0) { return 0; }
 
-    SetBitWidth(11);
+    SetBitWidth(12);
     SetFileStep(1);
     SetMaxBands(-1);
-    SetTruncatedHeaders(1);
+    SetTruncatedHeaders(0);
     SetUniformHeaders(1);
     SetDataLimit(-1);
     SetBipolarData();
