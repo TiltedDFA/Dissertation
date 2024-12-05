@@ -5,7 +5,7 @@
 #ifndef L2SB_REAL_HPP
 #define L2SB_REAL_HPP
 
-#define LTWOSB_DEBUG 0
+#define LTWOSB_DEBUG 1
 
 #if LTWOSB_DEBUG == 1
 #define PRINTNL(x) std::cout << (x) << std::endl
@@ -36,6 +36,7 @@
 #include <numeric>
 
 constexpr double ByteToMB = 1024.0 * 1024.0;
+using RawDataType = uint32_t;
 enum class FileDataType
 {
     Unipolar = 0,
@@ -85,18 +86,25 @@ class BandConfig
 {
 public:
     BandConfig()=delete;
-    BandConfig(uint32_t const num_bands,std::vector<uint32_t>&& band_config, HeaderType const header_type):
-        bands_(num_bands),
+    BandConfig(std::vector<uint32_t>&& band_config, HeaderType const header_type):
         band_config_(band_config.cbegin(), band_config.cend()),
-        header_config_(band_config.size())
+        header_config_(band_config.size()),
+        header_type_(header_type)
     {
+        uint32_t const header_bit_width = static_cast<uint32_t>(std::ceil(std::log2(band_config.size() + 1)));
         if (header_type == HeaderType::Uniform)
         {
-
+            std::ranges::fill(header_config_, header_bit_width);
         }
         else
         {
-
+            //doesn't seem to quite work yet
+            uint32_t const unused = static_cast<uint32_t>(std::pow(2, header_bit_width)) - band_config_.size();
+            for (uint32_t i = 0; i < band_config_.size(); i++)
+            {
+                if (i < unused){ header_config_[i] = header_bit_width; }
+                else {header_config_[i] = header_bit_width + 1; }
+            }
         }
         //verify that we have a "legal" configuration
         assert(((void)"Mismatched header - band config sizes", header_config_.size() == band_config_.size()));
@@ -111,10 +119,29 @@ public:
     std::vector<uint32_t> const& GetBandConfig() const{return band_config_;}
     [[nodiscard]]
     std::vector<uint32_t> const& GetHeaderConfig() const{return header_config_;}
+    void Print() const
+    {
+        std::string final{"\n\nBAND AND HEADER CONFIGURATION:\nUsing "};
+        final += (header_type_ == HeaderType::Uniform ? "uniform" : "truncated");
+        final += " headers\n";
+        final += "Bands: \n";
+        for (auto i = band_config_.rbegin(); i != std::prev(band_config_.rend()); ++i)
+        {
+            final += std::to_string(*i) + " | ";
+        }
+        final += std::to_string(*std::prev(band_config_.rend())) + '\n';
+        final += "Headers: \n";
+        for (auto i = header_config_.rbegin(); i != std::prev(header_config_.rend()); ++i)
+        {
+            final += std::to_string(*i) + " | ";
+        }
+        final += std::to_string(*std::prev(header_config_.rend())) + '\n';
+        std::cout << final << std::endl;
+    }
 private:
-    uint32_t const bands_;
     std::vector<uint32_t> const band_config_;
-    std::vector<uint32_t> const header_config_;
+    std::vector<uint32_t> header_config_;
+    HeaderType const header_type_;
 };
 template<FileDataType type>
 class FileData
@@ -125,24 +152,24 @@ public:
         file_data_()
         {}
     [[nodiscard]]
-    static constexpr uint32_t QuantiseData(double data)
+    static constexpr RawDataType QuantiseData(double data)
     {
         auto const data_range = static_cast<double>(GenPar::Get(GenPar::Params::DataRange));
         auto const quantisation = static_cast<double>(GenPar::Get(GenPar::Params::Quantisation));
         if constexpr (type == FileDataType::Unipolar)
         {
             data *= std::pow(2.0, quantisation) / data_range;
-            return static_cast<uint32_t>(data);
+            return static_cast<RawDataType>(data);
         }
         else if constexpr (type == FileDataType::Bipolar)
         {
             data = data + data_range;
             data *= std::pow(2.0, quantisation) / data_range / 2.0;;
-            return static_cast<uint32_t>(data);
+            return static_cast<RawDataType>(data);
         }
         else{static_assert(false);}
         //get rid of warnings
-        return std::numeric_limits<uint32_t>::max();
+        return std::numeric_limits<RawDataType>::max();
     }
 
     /// 
@@ -156,22 +183,22 @@ public:
             std::ifstream file(f);
             std::string line;
             uint64_t data_count{};
-            uint32_t data_max{};
+            RawDataType data_max{};
             // auto const it = file_data_.begin() + file_data_.size();
             while (std::getline(file, line) && data_count < data_limit)
             {
                 double const data_term = std::stod(SplitCSVLine(line)AT(term));
-                data_max = std::max(data_max, static_cast<uint32_t>(data_term));
-                uint32_t const data = QuantiseData(data_term);
+                data_max = std::max(data_max, static_cast<RawDataType>(data_term));
+                RawDataType const data = QuantiseData(data_term);
                 file_data_.push_back(data);
                 ++data_count;
             }
             PRINTNL(std::format("File Imported \"{}\", {} data points quantised, data range <0-{}>", f, data_count, data_max));
         }
-        PRINTNL(std::format("Read: {:5.2f} MB of data", static_cast<double>(sizeof(uint32_t) * file_data_.size()) / ByteToMB));
+        PRINTNL(std::format("Read: {:5.2f} MB of data", static_cast<double>(sizeof(RawDataType) * file_data_.size()) / ByteToMB));
     }
     [[nodiscard]]
-    std::vector<uint32_t> const& GetFileData() const{return file_data_;}
+    std::vector<RawDataType> const& GetFileData() const{return file_data_;}
 private:
     [[nodiscard]]
     std::vector<std::string> FindCSVFiles()const
@@ -202,7 +229,7 @@ private:
     }
 private:
     std::string const path_to_files_;
-    std::vector<uint32_t> file_data_;
+    std::vector<RawDataType> file_data_;
 };
 template<typename T>
 requires std::is_integral_v<T>
@@ -211,7 +238,8 @@ constexpr uint8_t FindMS1B(T inp)
     uint8_t count{};
     while (inp >>= 1)
         ++count;
-    return count + bool(count);
+    // return count + bool(count);
+    return count;
 }
 template <FileDataType type>
 static double FindCompressionRatio(FileData<type> const& file_data, BandConfig const& band_config)
@@ -219,12 +247,11 @@ static double FindCompressionRatio(FileData<type> const& file_data, BandConfig c
     double compression_ratio{};
     std::vector<uint32_t> const& bands   = band_config.GetBandConfig();
     std::vector<uint32_t> const& headers = band_config.GetHeaderConfig();
-    std::vector<uint32_t> const& data = file_data.GetFileData();
+    std::vector<RawDataType> const& data = file_data.GetFileData();
     uint64_t const data_bit_width = GenPar::Get(GenPar::Params::BitWidth);
     // uint64_t bit_count = headers.back() + quantisation;
     uint64_t bit_count{};
 
-    PRINTNL(std::format("headers.back: {}", headers.back()));
     for (auto it = data.cbegin(); it != std::prev(data.cend()); ++it)
     {
         uint32_t const difference = *it ^ *(it + 1);
@@ -237,11 +264,9 @@ static double FindCompressionRatio(FileData<type> const& file_data, BandConfig c
 
         bit_count += band_total + headers[idx - bool(msb_loc)];
     }
-    PRINTNL(data_bit_width);
-    PRINTNL(data.size());
-    PRINTNLF("uncompressed: {}", data_bit_width * data.size());
-    PRINTNLF("compressed:   {}", bit_count);
     compression_ratio = static_cast<double>(data_bit_width * data.size()) / static_cast<double>(bit_count);
+    PRINTNLF("Raw:\t\t\t\t{}", data_bit_width * data.size());
+    PRINTNLF("Compressed:\t\t\t{}", bit_count);
     return compression_ratio;
 }
 #endif //L2SB_REAL_HPP
