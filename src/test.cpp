@@ -24,7 +24,7 @@ int main(void)
 
     if (Init() == 0) { return 0; }
 
-    SetBitWidth(11);
+    SetBitWidth(12);
     SetFileStep(1);
     SetMaxBands(-1);
     SetTruncatedHeaders(1);
@@ -55,7 +55,7 @@ int main(void)
         // just run one configuration
         // example is a 5-band example
 
-        L2SB_MITBIH_TEST(1, "1,1,1,1,4,1,1,1,1,0,-1");
+        L2SB_MITBIH_TEST(1, "4,4,4,-1");
 
         printf("\n All Files Average CR(Iniform Header) %f CR(Truncated Header) %f\n", CRU, CRT);
     }
@@ -101,9 +101,9 @@ void L2SB_MITBIH_TEST(int Term, char* BandConfig)
                 test_L2SB(BandConfig);
                 CRU += CRUB;
                 CRT += CRTB;
+                c++;
             }
 
-            c++;
         }
     }
 

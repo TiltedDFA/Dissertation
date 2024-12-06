@@ -6,8 +6,8 @@
 int main()
 {
     GenPar config{};
-    GenPar::Set(GenPar::Params::BitWidth, 11);
-    GenPar::Set(GenPar::Params::Quantisation, 11);
+    GenPar::Set(GenPar::Params::BitWidth, 12);
+    GenPar::Set(GenPar::Params::Quantisation, 12);
     GenPar::Set(GenPar::Params::DataRange, 2048);
     GenPar::Set(GenPar::Params::FileDataReadLimit, std::numeric_limits<int64_t>::max());
     // GenPar::Set(GenPar::Params::FileDataReadLimit, 1000);
@@ -19,7 +19,7 @@ int main()
     // FileData<FileDataType::Bipolar> files("../Data/BONN/Healthy");
     // files.ReadCSVFiles(0);
 
-    BandConfig random_config({3,4,4}, HeaderType::Uniform);
+    BandConfig random_config({4,4,4}, HeaderType::Uniform);
 
 
     std::cout << std::format("Calculated average compression ratio: {:4.5}", FindCompressionRatio<FileDataType::Unipolar>(files, random_config)) << std::endl;

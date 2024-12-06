@@ -98,12 +98,13 @@ public:
         }
         else
         {
+            assert(((void)"Unsupported feature (Truncated headers) used", false));
             //doesn't seem to quite work yet
             uint32_t const unused = static_cast<uint32_t>(std::pow(2, header_bit_width)) - band_config_.size();
             for (uint32_t i = 0; i < band_config_.size(); i++)
             {
-                if (i < unused){ header_config_[i] = header_bit_width; }
-                else {header_config_[i] = header_bit_width + 1; }
+                if (i < unused){ header_config_[i] = header_bit_width - 1; }
+                else {header_config_[i] = header_bit_width; }
             }
         }
         //verify that we have a "legal" configuration
@@ -249,8 +250,8 @@ static double FindCompressionRatio(FileData<type> const& file_data, BandConfig c
     std::vector<uint32_t> const& headers = band_config.GetHeaderConfig();
     std::vector<RawDataType> const& data = file_data.GetFileData();
     uint64_t const data_bit_width = GenPar::Get(GenPar::Params::BitWidth);
-    // uint64_t bit_count = headers.back() + quantisation;
-    uint64_t bit_count{};
+    uint64_t bit_count = headers.back() + data_bit_width;
+    // uint64_t bit_count{};
 
     for (auto it = data.cbegin(); it != std::prev(data.cend()); ++it)
     {
