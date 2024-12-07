@@ -5,7 +5,7 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-#define LTWOSB_DEBUG 0
+#define LTWOSB_DEBUG 1
 
 
 #if LTWOSB_DEBUG == 1
