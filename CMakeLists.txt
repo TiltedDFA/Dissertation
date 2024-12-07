@@ -12,7 +12,7 @@ add_executable(L2SB_LIB
         src/Old/l2sb.hpp
         src/Old/test.cpp)
 add_executable(Real
-        src/Current/ls2b.hpp
+        src/Current/FitnessFunction.hpp
         src/Current/main.cpp
         src/Current/Types.hpp
         src/Current/Utils.hpp
@@ -22,5 +22,7 @@ add_executable(Real
         src/Current/BandConfig.cpp
         src/Current/FileData.cpp
         src/Current/FileData.hpp
+        src/Current/Genetics.cpp
+        src/Current/Genetics.hpp
 )
 target_compile_options(Real PUBLIC -Wall -Wextra -Wpedantic)

@@ -6,7 +6,9 @@
 #define TYPES_HPP
 #include <cstdint>
 #include <format>
-using RawDataType = uint32_t;
+#include <functional>
+using RawDataType   = uint32_t;
+using FitnessScore  = double;
 // using RawDataType = int64_t;
 enum class FileDataType
 {

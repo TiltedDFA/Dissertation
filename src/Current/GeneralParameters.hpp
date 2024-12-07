@@ -15,19 +15,30 @@ class GenPar
 public:
     enum class Params
     {
-        BitWidth,
+        BitWidth = 0,
         DataRange,
         Quantisation,
         FileDataReadLimit, // previously known as data_limit
         MaxBands,
+        ENUM_SIZE,
     };
 public:
-    GenPar();
-    static void Set(Params param, int64_t value);
-    static int64_t Get(Params param);
+    constexpr GenPar()=default;
+    constexpr void Set(Params param, int64_t value)
+    {
+        //void casting to bypass unused error as it is intentional
+        // assert(((void)"Attempted to access uninitialized singleon", (instance_ != nullptr)));
+        config_ AT(static_cast<size_t>(param))  = value;
+    }
+    [[nodiscard]]
+    constexpr int64_t Get(Params param) const
+    {
+        // assert(((void)"Attempted to access uninitialized singleon", (instance_ != nullptr)));
+        // assert(((void)"ERROR, uninitialized parameter attempted to be accessed", instance_->config_ AT(static_cast<size_t>(param)).has_value()));
+        return config_ AT(static_cast<size_t>(param)).value();
+    }
 private:
-    static GenPar* instance_;
-    std::unordered_map<Params, int64_t> config_{};
+    std::array<std::optional<int64_t>, static_cast<size_t>(Params::ENUM_SIZE)> config_;
 };
 
 

@@ -17,15 +17,16 @@ template<FileDataType type>
 class FileData
 {
 public:
-    explicit FileData(const std::string_view path):
+    explicit FileData(std::string_view const path, std::reference_wrapper<GenPar const>&& gp):
         path_to_files_(path),
-        file_data_()
+        file_data_(),
+        gen_par_(gp)
         {}
     [[nodiscard]]
-    static constexpr RawDataType QuantiseData(double data)
+    constexpr RawDataType QuantiseData(double data) const
     {
-        auto const data_range = static_cast<double>(GenPar::Get(GenPar::Params::DataRange));
-        auto const quantisation = static_cast<double>(GenPar::Get(GenPar::Params::Quantisation));
+        auto const data_range = static_cast<double>(gen_par_.get().Get(GenPar::Params::DataRange));
+        auto const quantisation = static_cast<double>(gen_par_.get().Get(GenPar::Params::Quantisation));
         if constexpr (type == FileDataType::Unipolar)
         {
             data *= std::pow(2.0, quantisation) / data_range;
@@ -47,7 +48,7 @@ public:
     void ReadCSVFiles(uint32_t const term)
     {
         auto const files = FindCSVFiles();
-        std::size_t const data_limit = GenPar::Get(GenPar::Params::FileDataReadLimit);
+        std::size_t const data_limit = gen_par_.get().Get(GenPar::Params::FileDataReadLimit);
         for (auto const& f : files)
         {
             std::ifstream file(f);
@@ -65,7 +66,7 @@ public:
             }
             PRINTNL(std::format("File Imported \"{}\", {} data points quantised, data range <0-{}>", f, data_count, data_max));
         }
-        PRINTNL(std::format("Read: {:5.2f} MB of data", static_cast<double>(sizeof(RawDataType) * file_data_.size()) / ByteToMB));
+        std::cout << std::format("Read: {:5.2f} MB of data", static_cast<double>(sizeof(RawDataType) * file_data_.size()) / ByteToMB) << std::endl;
     }
     [[nodiscard]]
     std::vector<RawDataType> const& GetFileData() const{return file_data_;}
@@ -78,8 +79,7 @@ private:
         {
             if (entry.is_regular_file() && entry.path().extension() == ".csv")
             {
-                //std::move?
-                files.push_back(entry.path().string());
+                files.emplace_back(std::move(entry.path().string()));
             }
         }
         std::ranges::sort(files);
@@ -100,6 +100,7 @@ private:
 private:
     std::string const path_to_files_;
     std::vector<RawDataType> file_data_;
+    std::reference_wrapper<GenPar const> gen_par_;
 };
 
 
