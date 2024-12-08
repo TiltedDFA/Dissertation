@@ -56,11 +56,13 @@ private:
     }
 
     template <std::size_t... Indices>
-    std::array<BandConfig, population_size> InitBandsImpl(std::index_sequence<Indices...>) {
+    std::array<BandConfig, population_size> InitBandsImpl(std::index_sequence<Indices...>)
+    {
         return { (static_cast<void>(Indices), GenerateRandomBand())... };
     }
 
-    std::array<BandConfig, population_size> InitBands() {
+    std::array<BandConfig, population_size> InitBands()
+    {
         return InitBandsImpl(std::make_index_sequence<population_size>{});
     }
 private:

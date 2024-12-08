@@ -20,21 +20,20 @@ public:
         Quantisation,
         FileDataReadLimit, // previously known as data_limit
         MaxBands,
-        ENUM_SIZE,
+        ENUM_SIZE
     };
 public:
     constexpr GenPar()=default;
     constexpr void Set(Params param, int64_t value)
     {
         //void casting to bypass unused error as it is intentional
-        // assert(((void)"Attempted to access uninitialized singleon", (instance_ != nullptr)));
+        assert(((void)"Attempted to overwrite existing value", !config_.at(static_cast<size_t>(param)).has_value()));
+
         config_ AT(static_cast<size_t>(param))  = value;
     }
     [[nodiscard]]
     constexpr int64_t Get(Params param) const
     {
-        // assert(((void)"Attempted to access uninitialized singleon", (instance_ != nullptr)));
-        // assert(((void)"ERROR, uninitialized parameter attempted to be accessed", instance_->config_ AT(static_cast<size_t>(param)).has_value()));
         return config_ AT(static_cast<size_t>(param)).value();
     }
 private:
