@@ -66,7 +66,7 @@ public:
             }
             PRINTNL(std::format("File Imported \"{}\", {} data points quantised, data range <0-{}>", f, data_count, data_max));
         }
-        std::cout << std::format("Read: {:5.2f} MB of data", static_cast<double>(sizeof(RawDataType) * file_data_.size()) / ByteToMB) << std::endl;
+        std::cout << std::format("Read: {:5.2f} MB of data across {} data points", static_cast<double>(sizeof(RawDataType) * file_data_.size()) / ByteToMB, file_data_.size()) << std::endl;
     }
     [[nodiscard]]
     std::vector<RawDataType> const& GetFileData() const{return file_data_;}

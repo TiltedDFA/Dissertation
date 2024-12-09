@@ -25,11 +25,17 @@ public:
         gen_par_(gp),
         bands_(InitBands()),
         data_(data)
-    {}
+    {
+        static_assert(population_size > 5, "Population size must be greater than 0");
+    }
     void EvaluatePopulation()
     {
         std::ranges::for_each(bands_,[this](BandConfig& band){band.SetFitnessScore(FindCompressionRatio(data_,band,gen_par_));});
         std::ranges::sort(bands_,[](BandConfig const& band1, BandConfig const& band2) -> bool {return band1.GetFitnessScore() > band2.GetFitnessScore();});
+    }
+    void SelectFromPopulation()
+    {
+
     }
     void PrintPopulation()
     {

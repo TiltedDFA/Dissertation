@@ -58,8 +58,8 @@ inline double FindCompressionRatio(FileData<type> const& file_data, BandConfig c
         bit_count += bands_cum[idx] + headers[idx - bool(msb_loc)];
     }
     compression_ratio = static_cast<double>(data_bit_width * data.size()) / static_cast<double>(bit_count);
-    PRINTNLF("Raw:\t\t\t\t{}", data_bit_width * data.size());
-    PRINTNLF("Compressed:\t\t\t{}", bit_count);
+    // PRINTNLF("Raw:\t\t\t\t{}", data_bit_width * data.size());
+    // PRINTNLF("Compressed:\t\t\t{}", bit_count);
     return compression_ratio;
 }
 #endif //L2SB_REAL_HPP

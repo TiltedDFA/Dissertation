@@ -3,6 +3,17 @@
 //
 #include "BandConfig.hpp"
 
+#include <bits/ranges_algo.h>
+
+namespace
+{
+    constexpr uint32_t FindK(uint32_t count) noexcept
+    {
+        uint32_t k = 0, t = count;
+        while (t > 1) { ++k; t >>= 1;}
+        return k;
+    }
+}
 BandConfig::BandConfig(std::vector<uint32_t>&& band_config, HeaderType const header_type, std::reference_wrapper<GenPar const> gp):
         band_config_(std::move(band_config)),
         header_config_(band_config_.size()),
@@ -16,15 +27,39 @@ BandConfig::BandConfig(std::vector<uint32_t>&& band_config, HeaderType const hea
     }
     else
     {
-        std::cerr << "Unsupported feature (Truncated headers) used" << std::endl;
-        std::abort();
-        //doesn't seem to quite work yet
-        uint32_t const unused = static_cast<uint32_t>(std::pow(2, header_bit_width)) - band_config_.size();
-        for (uint32_t i = 0; i < band_config_.size(); i++)
+        // std::cerr << "Unsupported feature (Truncated headers) used" << std::endl;
+        // std::abort();
+        // int k = 0, t = count;
+        // while (t > 1) { ++k; t >>= 1;}
+        // int u = (1 << (k + 1)) - count;
+        // // assert(u + k == count);
+        // std::fill_n(header_config_.begin(), u, k);
+        // std::fill_n(header_config_.begin() + u, count - u, k + 1);
+
+        uint32_t const count = band_config_.size() + 1;
+        // if 1 then n is power of 2, should never be zero
+        bool const can_truncate = std::popcount(count) > 1;
+        if (can_truncate)
         {
-            if (i < unused){ header_config_[i] = header_bit_width - 1; }
-            else {header_config_[i] = header_bit_width; }
+            // volatile uint32_t const k = static_cast<uint32_t>(std::floor(std::log2(count)));
+            uint32_t const k = FindK(count);
+            uint32_t const u = ((1 << (k + 1)) - count);
+            std::fill_n(header_config_.begin(), u, k);
+            std::fill_n(header_config_.begin() + u, count - u - 1, k + 1);
+            // std::ranges::shuffle(header_config_);
         }
+        else
+        {
+            std::ranges::fill(header_config_, static_cast<uint32_t>(std::log2(count)));
+        }
+
+        //doesn't seem to quite work yet
+        // uint32_t const unused = static_cast<uint32_t>(std::pow(2, header_bit_width)) - band_config_.size();
+        // for (uint32_t i = 0; i < band_config_.size(); i++)
+        // {
+        //     if (i < unused){ header_config_[i] = header_bit_width - 1; }
+        //     else {header_config_[i] = header_bit_width; }
+        // }
     }
     //verify that we have a "legal" configuration
     assert(((void)"Mismatched header - band config sizes", header_config_.size() == band_config_.size()));
@@ -60,6 +95,7 @@ void BandConfig::Print() const
         final += std::format("Fitness score: {:3.5}\n", fitness_score_.value());
     else
         final += "Fitness score not set\n";
+    final += std::format("Band length of: {}\n", band_config_.size());
     final += "Bands: \n";
     for (auto i = band_config_.rbegin(); i != std::prev(band_config_.rend()); ++i)
     {
