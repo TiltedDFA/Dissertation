@@ -14,52 +14,34 @@ namespace
         return k;
     }
 }
-BandConfig::BandConfig(std::vector<uint32_t>&& band_config, HeaderType const header_type, std::reference_wrapper<GenPar const> gp):
+BandConfig::BandConfig(std::vector<uint32_t>&& band_config, std::reference_wrapper<GenPar const> gp):
         band_config_(std::move(band_config)),
         header_config_(band_config_.size()),
-        header_type_(header_type),
+        fitness_score_(),
         gen_par_(gp)
 {
     uint32_t const header_bit_width = static_cast<uint32_t>(std::ceil(std::log2(band_config_.size() + 1)));
+    HeaderType const header_type = static_cast<HeaderType>(gen_par_.get().Get(GenPar::Params::HeaderType));
     if (header_type == HeaderType::Uniform)
     {
         std::ranges::fill(header_config_, header_bit_width);
     }
     else
     {
-        // std::cerr << "Unsupported feature (Truncated headers) used" << std::endl;
-        // std::abort();
-        // int k = 0, t = count;
-        // while (t > 1) { ++k; t >>= 1;}
-        // int u = (1 << (k + 1)) - count;
-        // // assert(u + k == count);
-        // std::fill_n(header_config_.begin(), u, k);
-        // std::fill_n(header_config_.begin() + u, count - u, k + 1);
-
         uint32_t const count = band_config_.size() + 1;
         // if 1 then n is power of 2, should never be zero
         bool const can_truncate = std::popcount(count) > 1;
         if (can_truncate)
         {
-            // volatile uint32_t const k = static_cast<uint32_t>(std::floor(std::log2(count)));
             uint32_t const k = FindK(count);
             uint32_t const u = ((1 << (k + 1)) - count);
             std::fill_n(header_config_.begin(), u, k);
             std::fill_n(header_config_.begin() + u, count - u - 1, k + 1);
-            // std::ranges::shuffle(header_config_);
         }
         else
         {
             std::ranges::fill(header_config_, static_cast<uint32_t>(std::log2(count)));
         }
-
-        //doesn't seem to quite work yet
-        // uint32_t const unused = static_cast<uint32_t>(std::pow(2, header_bit_width)) - band_config_.size();
-        // for (uint32_t i = 0; i < band_config_.size(); i++)
-        // {
-        //     if (i < unused){ header_config_[i] = header_bit_width - 1; }
-        //     else {header_config_[i] = header_bit_width; }
-        // }
     }
     //verify that we have a "legal" configuration
     assert(((void)"Mismatched header - band config sizes", header_config_.size() == band_config_.size()));
@@ -69,6 +51,11 @@ BandConfig::BandConfig(std::vector<uint32_t>&& band_config, HeaderType const hea
         std::accumulate(band_config_.cbegin(), band_config_.cend(), 0U) ==
         gen_par_.get().Get(GenPar::Params::BitWidth))
         );
+}
+
+void BandConfig::ShuffleHeaders(std::mt19937& rng)
+{
+    std::ranges::shuffle(header_config_, rng);
 }
 
 FitnessScore BandConfig::GetFitnessScore() const
@@ -88,8 +75,9 @@ void BandConfig::ResetFitnessScore()
 
 void BandConfig::Print() const
 {
+    HeaderType const header_type = static_cast<HeaderType>(gen_par_.get().Get(GenPar::Params::HeaderType));
     std::string final{"BAND AND HEADER CONFIGURATION:\nUsing "};
-    final += (header_type_ == HeaderType::Uniform ? "uniform" : "truncated");
+    final += (header_type == HeaderType::Uniform ? "uniform" : "truncated");
     final += " headers\n";
     if (fitness_score_)
         final += std::format("Fitness score: {:3.5}\n", fitness_score_.value());

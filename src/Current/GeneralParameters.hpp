@@ -20,6 +20,7 @@ public:
         Quantisation,
         FileDataReadLimit, // previously known as data_limit
         MaxBands,
+        HeaderType,
         ENUM_SIZE
     };
 public:
