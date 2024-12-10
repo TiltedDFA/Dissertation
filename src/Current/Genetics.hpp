@@ -5,6 +5,7 @@
 #ifndef GENETICS_HPP
 #define GENETICS_HPP
 
+#include "BinString.hpp"
 #include "FitnessFunction.hpp"
 
 
@@ -36,6 +37,17 @@ public:
     void SelectFromPopulation()
     {
 
+    }
+    void CrossOver(BinString a, BinString b)
+    {
+        auto const active_bits = gen_par_.get().Get(GenPar::Params::BitWidth) - 1;
+        auto const cross_over_point = std::uniform_int_distribution<> {1U, active_bits}(mt_);
+        uint64_t const cross_over_mask = (1U << cross_over_point) - 1;
+        uint64_t& a_data = a.GetData();
+        uint64_t& b_data = b.GetData();
+        uint64_t const difference_mask = a_data ^ b_data;
+        a_data ^= difference_mask & cross_over_mask;
+        b_data ^= difference_mask & cross_over_mask;
     }
     void PrintPopulation()
     {
@@ -77,6 +89,7 @@ private:
     std::reference_wrapper<GenPar const> gen_par_;
     std::array<BandConfig, population_size> bands_;
     FileData<file_data_type>& data_;
+    constexpr uint8_t A_B = gen_par_.get().Get(GenPar::Params::BitWidth) - 1;
 };
 
 

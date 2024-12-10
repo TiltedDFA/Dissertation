@@ -24,5 +24,6 @@ add_executable(Real
         src/Current/FileData.hpp
         src/Current/Genetics.cpp
         src/Current/Genetics.hpp
+        src/Current/BinString.hpp
 )
 target_compile_options(Real PUBLIC -Wall -Wextra -Wpedantic)
