@@ -45,7 +45,7 @@ BandConfig::BandConfig(std::vector<uint32_t>&& band_config, std::reference_wrapp
     }
     //verify that we have a "legal" configuration
     assert(((void)"Mismatched header - band config sizes", header_config_.size() == band_config_.size()));
-    assert(((void)"Configuration band number exceeds the maximum", band_config_.size() <= gen_par_.get().Get(GenPar::Params::MaxBands)));
+    assert(((void)"Configuration band number exceeds the maximum", band_config_.size() <= static_cast<size_t>(gen_par_.get().Get(GenPar::Params::MaxBands))));
     assert(
         ((void)"Mismatched band number-bit size count",
         std::accumulate(band_config_.cbegin(), band_config_.cend(), 0U) ==

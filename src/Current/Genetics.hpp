@@ -28,9 +28,11 @@ public:
         data_(data),
         //using the top 5 % of a population as the elites
         elite_count_(static_cast<uint64_t>(std::ceil(static_cast<double>(POPULATION_SIZE) * 0.05))),
-        temperature_cooling_rate_(0.95),
+        // temperature_cooling_rate_(0.95),
+        temperature_cooling_rate_(0.5),
         temperature_(10.0),
-        boltzmann_tournament_size_(2)
+        boltzmann_tournament_size_(2),
+        mutation_chance_(0.1)
     {
         static_assert(POPULATION_SIZE > 5, "Population size must be greater than 0");
     }
@@ -40,7 +42,8 @@ public:
         std::ranges::sort(bands_,[](BandConfig const& band1, BandConfig const& band2) -> bool {return band1.GetFitnessScore() > band2.GetFitnessScore();});
     }
 
-    std::vector<double>&& CalcBoltzmannProbablities(std::vector<BandConfig const*> const& selected_participants) const
+    [[nodiscard]]
+    std::vector<double> CalcBoltzmannProbablities(std::vector<BandConfig const*> const& selected_participants) const
     {
         std::vector<double> boltzmannProbabilities(boltzmann_tournament_size_);
         double total{};
@@ -52,16 +55,16 @@ public:
         {
             boltzmannProbabilities[i] = std::exp(selected_participants[i]->GetFitnessScore() / temperature_) / total;
         }
-        return std::move(boltzmannProbabilities);
+        return boltzmannProbabilities;
     }
     //can't mark const since it changes the mersenne twister value
-    std::pair<BandConfig const&, BandConfig const&>&& PickPairFromBoltzmannTournamentSelection()
+    std::pair<BandConfig const&, BandConfig const&> PickPairFromBoltzmannTournamentSelection()
     {
         std::uniform_int_distribution<size_t> participant_picker(0,POPULATION_SIZE-1);
         std::vector<BandConfig const*> participants;
         for (size_t i = 0; i < boltzmann_tournament_size_; ++i)
         {
-            participants.emplace_back(&bands_[participant_picker(i)]);
+            participants.emplace_back(&bands_[participant_picker(mt_)]);
         }
         std::vector<double> const boltzmannProbabilities = CalcBoltzmannProbablities(participants);
         std::discrete_distribution<> parent_picker(boltzmannProbabilities.cbegin(), boltzmannProbabilities.cend());
@@ -72,20 +75,38 @@ public:
      * TODO: Store elites in new pop and remove from selection, fill new pop while < current_pop.size() with
      * TODO: offspring made by parents selected from the boltzmann method
      * TODO: then move over the values in new pop to current pop
+     *
+     * To start with will disregard optimality and just try to make something that works.
      */
     void GenerateNewPopulation()
     {
-        std::vector<BandConfig> NewPopulation;
+        std::vector<BandConfig> new_population;
+        std::vector<BandConfig> old_population(bands_.cbegin(), bands_.cend());
         //assumes sorted population
 
-        auto idx_seq = std::make_index_sequence<POPULATION_SIZE> { };
+        // auto idx_seq = std::make_index_sequence<POPULATION_SIZE> { };
         for (size_t i = 0; i < elite_count_; ++i)
         {
-            //doing a "dumb" implamentation for now, might wanna order by asc order
+            //doing a "dumb" implementation for now, might wanna order by asc order
             //to later be able to do vector.back() and .pop()
-            NewPopulation.emplace_back(std::move(*std::ranges::max_element(bands_)));
+            auto max_elem =
+                std::max_element(old_population.begin(), old_population.end(),
+                    [](BandConfig const& band1, BandConfig const& band2)
+                        {return band1.GetFitnessScore() > band2.GetFitnessScore();}
+                        );
+            new_population.emplace_back(std::move(*max_elem));
+            old_population.erase(max_elem);
         }
-
+        while (new_population.size() < POPULATION_SIZE)
+        {
+            auto const res = PickPairFromBoltzmannTournamentSelection();
+            auto&& _ = CrossOver({res.first, gen_par_}, {res.second, gen_par_});
+            new_population.emplace_back(Mutate(std::move(_)).Destruct());
+        }
+        for (size_t i = 0; i < new_population.size(); ++i)
+        {
+            bands_[i] = std::move(new_population[i]);
+        }
     }
     /**
      * rough sketch of the pipeline
@@ -104,49 +125,57 @@ public:
     /**
      * Single-point cross over
      */
-    void CrossOver(BinString& a, BinString& b)
+    [[nodiscard]]
+    BinString CrossOver(BinString const& a, BinString const& b)
     {
         auto const active_bits = gen_par_.get().Get(GenPar::Params::BitWidth) - 1;
-        auto const cross_over_point = std::uniform_int_distribution<> {1U, active_bits}(mt_);
+        auto const cross_over_point = std::uniform_int_distribution<> {1U, (int)active_bits}(mt_);
         // uint64_t const cross_over_mask = (1U << cross_over_point) - 1;
-        uint64_t const cross_over_mask = (1ULL << cross_over_point) - 1;
-        PRINTBS(cross_over_mask);
-        uint64_t& a_data = a.GetData();
-        uint64_t& b_data = b.GetData();
-        uint64_t const difference_mask = a_data ^ b_data;
-        PRINTBS(difference_mask);
-        a_data ^= difference_mask & cross_over_mask;
-        b_data ^= difference_mask & cross_over_mask;
+        uint64_t const active_mask = GenMask(active_bits);
+        uint64_t const cross_over_lower_mask = GenMask(cross_over_point);
+        uint64_t const cross_over_upper_mask = active_mask ^ cross_over_point;
+        uint64_t const result = (a.GetData() & cross_over_lower_mask) | (b.GetData() & cross_over_upper_mask);
+        return {result, gen_par_};
     }
 
     /**
      * Starting with simple mutation strategy
      * @param bs
      */
-    void Mutate(BinString& bs)
+    BinString&& Mutate(BinString&& bs)
     {
         auto const active_bits_zero_indexed = gen_par_.get().Get(GenPar::Params::BitWidth) - 2;
-        auto const mutation_point = std::uniform_int_distribution<> {0U, active_bits_zero_indexed}(mt_);
+        std::uniform_real_distribution<double> do_mutate(0.0, 1.0);
+        std::uniform_int_distribution<> gen_mutate_point{0U, (int)active_bits_zero_indexed};
         uint64_t& bs_data = bs.GetData();
-        bs_data ^= 1ULL << mutation_point;
+        while (do_mutate(mt_) <= mutation_chance_)
+        {
+            auto const mutation_point = gen_mutate_point(mt_);
+            bs_data ^= 1ULL << mutation_point;
+        }
+        return std::move(bs);
     }
     void Run()
     {
         //population inited by ctor
-        std::vector<BinString> new_bands(POPULATION_SIZE);
-        // auto&& new_pop = SelectFromPopulation();
-        for (auto const& band : bands_)
-        {
-            new_bands.emplace_back(band, gen_par_.get());
-        }
-        while (true)
+        // std::vector<BinString> new_bands(POPULATION_SIZE);
+        // // auto&& new_pop = SelectFromPopulation();
+        // for (auto const& band : bands_)
+        // {
+        //     new_bands.emplace_back(band, gen_par_.get());
+        // }
+        for (size_t i{}; i < 10; ++i)
         {
             // CrossOver(new_pop.first, new_pop.second);
-            Mutate();
+            // Mutate();
             EvaluatePopulation();
+            PRINTNL(std::format("[{:3}] running, current best fitness {:2.5}", i + 1, bands_[0].GetFitnessScore()));
             GenerateNewPopulation();
             temperature_ *= temperature_cooling_rate_;
         }
+        PRINTNL(std::format("Evolution completed.\n"));
+        EvaluatePopulation();
+        bands_[0].Print();
     }
     void PrintPopulation()
     {
@@ -191,6 +220,7 @@ private:
     double const temperature_cooling_rate_;
     double temperature_;
     size_t const boltzmann_tournament_size_;
+    double const mutation_chance_;
 };
 
 

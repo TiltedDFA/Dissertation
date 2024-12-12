@@ -41,4 +41,18 @@ constexpr uint8_t FindMS1B(T inp)
 
     return count;
 }
+
+/**
+ * Generates a bitmask up to the input value
+ *
+ * E.g. 3 returns 0b111
+ * @param inp non-zero int type value
+ * @return bit mask
+ */
+template<typename T>
+requires std::is_integral_v<T>
+constexpr T GenMask(T inp)
+{
+    return (static_cast<T>(1) << inp) - 1;
+}
 #endif //UTILS_HPP

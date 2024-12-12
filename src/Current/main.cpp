@@ -27,8 +27,9 @@ int main()
     // random_config.Print();
 
     GeneticAlgorithm<20, FileDataType::Unipolar> ga(std::cref(config), files);
-    ga.PrintPopulation();
-    ga.EvaluatePopulation();
-    ga.PrintPopulation();
+    ga.Run();
+    // ga.PrintPopulation();
+    // ga.EvaluatePopulation();
+    // ga.PrintPopulation();
     // std::cin.get();
 }
