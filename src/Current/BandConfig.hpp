@@ -28,6 +28,8 @@ public:
     void SetFitnessScore(FitnessScore fitness_score);
     void ResetFitnessScore();
     void Print() const;
+    [[nodiscard]]
+    std::string PrintShort() const;
 private:
     std::vector<uint32_t> band_config_;
     std::vector<uint32_t> header_config_;

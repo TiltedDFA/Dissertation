@@ -1,0 +1,5 @@
+- Verify correctness of GA
+- Create some stopping options
+- Optimise.
+- Expand FileReader to work with the BONN datasets
+- Encode header order into ga's search (somehow), currently is random and is definitely a missed feature in the evo search

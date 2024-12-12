@@ -28,10 +28,10 @@ public:
         data_(data),
         //using the top 5 % of a population as the elites
         elite_count_(static_cast<uint64_t>(std::ceil(static_cast<double>(POPULATION_SIZE) * 0.05))),
-        // temperature_cooling_rate_(0.95),
-        temperature_cooling_rate_(0.5),
-        temperature_(10.0),
-        boltzmann_tournament_size_(2),
+        temperature_cooling_rate_(0.99),
+        // temperature_cooling_rate_(0.5),
+        temperature_(100.0),
+        boltzmann_tournament_size_(3),
         mutation_chance_(0.1)
     {
         static_assert(POPULATION_SIZE > 5, "Population size must be greater than 0");
@@ -47,9 +47,9 @@ public:
     {
         std::vector<double> boltzmannProbabilities(boltzmann_tournament_size_);
         double total{};
-        for (size_t i = 0; i < selected_participants.size(); ++i)
+        for (auto const selected_participant : selected_participants)
         {
-            total += std::exp(selected_participants[i]->GetFitnessScore() / temperature_);
+            total += std::exp(selected_participant->GetFitnessScore() / temperature_);
         }
         for (size_t i = 0; i < selected_participants.size(); ++i)
         {
@@ -72,16 +72,13 @@ public:
     }
 
     /**
-     * TODO: Store elites in new pop and remove from selection, fill new pop while < current_pop.size() with
-     * TODO: offspring made by parents selected from the boltzmann method
-     * TODO: then move over the values in new pop to current pop
      *
      * To start with will disregard optimality and just try to make something that works.
      */
     void GenerateNewPopulation()
     {
         std::vector<BandConfig> new_population;
-        std::vector<BandConfig> old_population(bands_.cbegin(), bands_.cend());
+        // std::vector<BandConfig> old_population(bands_.cbegin(), bands_.cend());
         //assumes sorted population
 
         // auto idx_seq = std::make_index_sequence<POPULATION_SIZE> { };
@@ -90,22 +87,29 @@ public:
             //doing a "dumb" implementation for now, might wanna order by asc order
             //to later be able to do vector.back() and .pop()
             auto max_elem =
-                std::max_element(old_population.begin(), old_population.end(),
+                std::max_element(bands_.cbegin(), bands_.cend(),
                     [](BandConfig const& band1, BandConfig const& band2)
-                        {return band1.GetFitnessScore() > band2.GetFitnessScore();}
+                        {return band1.GetFitnessScore() < band2.GetFitnessScore();}
                         );
-            new_population.emplace_back(std::move(*max_elem));
-            old_population.erase(max_elem);
+            new_population.emplace_back(*max_elem);
+            // old_population.erase(max_elem);
         }
+        std::uniform_int_distribution<> random_picker(0, POPULATION_SIZE - 1);
         while (new_population.size() < POPULATION_SIZE)
         {
-            auto const res = PickPairFromBoltzmannTournamentSelection();
-            auto&& _ = CrossOver({res.first, gen_par_}, {res.second, gen_par_});
+            auto const [fst, snd] = PickPairFromBoltzmannTournamentSelection();
+            auto&& _ = CrossOver({fst, gen_par_}, {snd, gen_par_});
+            // auto&& _ = CrossOver({bands_[random_picker(mt_)], gen_par_}, {bands_[random_picker(mt_)], gen_par_});
             new_population.emplace_back(Mutate(std::move(_)).Destruct());
+        }
+        // if ((HeaderType)gen_par_.get().Get(GenPar::Params::HeaderType) == HeaderType::Truncated)
+        if (true)
+        {
+            std::for_each(new_population.begin() + elite_count_, new_population.end(),[this](BandConfig& band){band.ShuffleHeaders(mt_);});
         }
         for (size_t i = 0; i < new_population.size(); ++i)
         {
-            bands_[i] = std::move(new_population[i]);
+            bands_[i] = new_population[i];
         }
     }
     /**
@@ -129,7 +133,7 @@ public:
     BinString CrossOver(BinString const& a, BinString const& b)
     {
         auto const active_bits = gen_par_.get().Get(GenPar::Params::BitWidth) - 1;
-        auto const cross_over_point = std::uniform_int_distribution<> {1U, (int)active_bits}(mt_);
+        auto const cross_over_point = std::uniform_int_distribution<> {1U, static_cast<int>(active_bits)}(mt_);
         // uint64_t const cross_over_mask = (1U << cross_over_point) - 1;
         uint64_t const active_mask = GenMask(active_bits);
         uint64_t const cross_over_lower_mask = GenMask(cross_over_point);
@@ -146,7 +150,7 @@ public:
     {
         auto const active_bits_zero_indexed = gen_par_.get().Get(GenPar::Params::BitWidth) - 2;
         std::uniform_real_distribution<double> do_mutate(0.0, 1.0);
-        std::uniform_int_distribution<> gen_mutate_point{0U, (int)active_bits_zero_indexed};
+        std::uniform_int_distribution<> gen_mutate_point{0U, static_cast<int>(active_bits_zero_indexed)};
         uint64_t& bs_data = bs.GetData();
         while (do_mutate(mt_) <= mutation_chance_)
         {
@@ -164,16 +168,23 @@ public:
         // {
         //     new_bands.emplace_back(band, gen_par_.get());
         // }
-        for (size_t i{}; i < 10; ++i)
+        EvaluatePopulation();
+        for (size_t i{}; i < 10'000; ++i)
         {
             // CrossOver(new_pop.first, new_pop.second);
             // Mutate();
-            EvaluatePopulation();
-            PRINTNL(std::format("[{:3}] running, current best fitness {:2.5}", i + 1, bands_[0].GetFitnessScore()));
-            GenerateNewPopulation();
+            uint64_t time;
+            {
+                ScopedTimer<std::chrono::microseconds> timer(&time);
+                GenerateNewPopulation();
+                EvaluatePopulation();
+            }
+            std::cout << (std::format("[{:7}] completed in {:5.5} seconds, best fitness {:2.5} \t{}\t\t{}\ttemp: {:3.2}", i + 1, static_cast<double>(time)/static_cast<double>(1e6), bands_[0].GetFitnessScore(), bands_[0].PrintShort(), bands_[2].PrintShort(), temperature_)) << std::endl;
+            std::cout << std::format("[{:7}] fitnesses {:2.5} {:2.5} {:2.5} {:2.5} {:2.5} {:2.5}\n", i + 1, bands_[1].GetFitnessScore(), bands_[2].GetFitnessScore(), bands_[3].GetFitnessScore(), bands_[4].GetFitnessScore(), bands_[5].GetFitnessScore(), bands_[6].GetFitnessScore()) << std::endl;
             temperature_ *= temperature_cooling_rate_;
         }
-        PRINTNL(std::format("Evolution completed.\n"));
+        // PRINTNL(std::format("Evolution completed.\n"));
+        std::cout << "Evolution completed.\n" << std::endl;
         EvaluatePopulation();
         bands_[0].Print();
     }

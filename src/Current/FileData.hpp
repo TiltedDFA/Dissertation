@@ -82,6 +82,11 @@ private:
                 files.emplace_back(std::move(entry.path().string()));
             }
         }
+        if (files.empty())
+        {
+            std::cerr << "No files found" << std::endl;
+            std::exit(EXIT_FAILURE);
+        }
         std::ranges::sort(files);
         return files;
     }

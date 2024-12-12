@@ -98,3 +98,20 @@ void BandConfig::Print() const
     final += std::to_string(*std::prev(header_config_.rend())) + '\n';
     std::cout << final << std::endl;
 }
+
+std::string BandConfig::PrintShort() const
+{
+    std::string final{"B:("};
+    for (auto i = band_config_.rbegin(); i != std::prev(band_config_.rend()); ++i)
+    {
+        final += std::to_string(*i) + "|";
+    }
+    final += std::to_string(*std::prev(band_config_.rend())) + ')';
+    final += " H:(";
+    for (auto i = header_config_.rbegin(); i != std::prev(header_config_.rend()); ++i)
+    {
+        final += std::to_string(*i) + "|";
+    }
+    final += std::to_string(*std::prev(header_config_.rend())) + ')';
+    return final;
+}

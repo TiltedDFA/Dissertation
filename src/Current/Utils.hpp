@@ -5,7 +5,7 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-#define LTWOSB_DEBUG 1
+#define LTWOSB_DEBUG 0
 
 
 #if LTWOSB_DEBUG == 1
@@ -25,6 +25,8 @@
 #endif
 
 #include <cassert>
+#include <chrono>
+#include <iostream>
 #include <type_traits>
 
 #include "Types.hpp"
@@ -55,4 +57,30 @@ constexpr T GenMask(T inp)
 {
     return (static_cast<T>(1) << inp) - 1;
 }
+template<typename T>
+class ScopedTimer
+{
+public:
+    constexpr ScopedTimer()
+    :start_(std::chrono::high_resolution_clock::now()), time_out(nullptr){}
+    
+    constexpr explicit ScopedTimer(uint64_t* ptr)
+    :start_(std::chrono::high_resolution_clock::now()), time_out(ptr) {}
+
+    constexpr ~ScopedTimer()
+    {
+        const std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
+        if(time_out)
+        {
+            *time_out = uint64_t(std::chrono::duration_cast<T>(end-start_).count());
+        }
+        else
+        {
+            std::cout << "Timer lasted: " <<  std::chrono::duration_cast<T>(end-start_).count() << std::endl;
+        }
+    }
+private:
+    const std::chrono::time_point<std::chrono::high_resolution_clock> start_;
+    uint64_t* time_out;
+};
 #endif //UTILS_HPP
