@@ -3,3 +3,7 @@
 - Optimise.
 - Expand FileReader to work with the BONN datasets
 - Encode header order into ga's search (somehow), currently is random and is definitely a missed feature in the evo search
+
+--- TO UPDATE AFTER MEETING:
+- {4,4,4,0} != {4,4,4}, 0 is a valid configuration addition to represent no change
+- MITBIH use 11 bit apparently, not 12.

@@ -38,7 +38,7 @@ public:
             data *= std::pow(2.0, quantisation) / data_range / 2.0;;
             return static_cast<RawDataType>(data);
         }
-        else{static_assert(false);}
+        else{static_assert(false, "");}
         //get rid of warnings
         return std::numeric_limits<RawDataType>::max();
     }

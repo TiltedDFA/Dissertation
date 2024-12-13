@@ -7,8 +7,8 @@
 int main()
 {
     GenPar config{};
-    config.Set(GenPar::Params::BitWidth, 12);
-    config.Set(GenPar::Params::Quantisation, 12);
+    config.Set(GenPar::Params::BitWidth, 11);
+    config.Set(GenPar::Params::Quantisation, 11);
     config.Set(GenPar::Params::DataRange, 2048);
     // config.Set(GenPar::Params::FileDataReadLimit, std::numeric_limits<int64_t>::max());
     config.Set(GenPar::Params::FileDataReadLimit, 20000);
