@@ -29,7 +29,7 @@
 #include <iostream>
 #include <type_traits>
 
-#include "Types.hpp"
+// #include "Types.hpp"
 
 constexpr double ByteToMB = 1024.0 * 1024.0;
 
@@ -54,6 +54,12 @@ constexpr uint8_t FindMS1B(T inp)
 template<typename T>
 requires std::is_integral_v<T>
 constexpr T GenMask(T inp)
+{
+    return (static_cast<T>(1) << inp) - 1;
+}
+template<typename T, T inp>
+requires std::is_integral_v<T>
+consteval T GenMask()
 {
     return (static_cast<T>(1) << inp) - 1;
 }

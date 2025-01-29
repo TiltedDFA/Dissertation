@@ -18,17 +18,28 @@ class BandConfig
 {
 public:
     BandConfig()=delete;
+
     BandConfig(std::vector<uint32_t>&& band_config);
+
     [[nodiscard]]
     std::vector<uint32_t> const& GetBandConfig() const{return band_config_;}
+
     [[nodiscard]]
     std::vector<uint32_t> const& GetHeaderConfig() const{return header_config_;}
+
     void ShuffleHeaders(std::mt19937& rng);
-    [[nodiscard]] FitnessScore GetFitnessScore() const;
+
+    [[nodiscard]]
+    FitnessScore GetFitnessScore() const;
+
     void SetFitnessScore(FitnessScore fitness_score);
+
     void ResetFitnessScore();
+
     void Print() const;
+
     size_t GetSize()const;
+
     [[nodiscard]]
     std::string PrintShort() const;
 private:
