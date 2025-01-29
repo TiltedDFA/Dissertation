@@ -6,7 +6,7 @@
 #define BANDCONFIG_HPP
 
 
-#include "GeneralParameters.hpp"
+#include "Types.hpp"
 
 #include <bits/ranges_algobase.h>
 #include <cmath>
@@ -18,7 +18,7 @@ class BandConfig
 {
 public:
     BandConfig()=delete;
-    BandConfig(std::vector<uint32_t>&& band_config, std::reference_wrapper<GenPar const> gp);
+    BandConfig(std::vector<uint32_t>&& band_config);
     [[nodiscard]]
     std::vector<uint32_t> const& GetBandConfig() const{return band_config_;}
     [[nodiscard]]
@@ -28,12 +28,12 @@ public:
     void SetFitnessScore(FitnessScore fitness_score);
     void ResetFitnessScore();
     void Print() const;
+    size_t GetSize()const;
     [[nodiscard]]
     std::string PrintShort() const;
 private:
     std::vector<uint32_t> band_config_;
     std::vector<uint32_t> header_config_;
     std::optional<FitnessScore> fitness_score_;
-    std::reference_wrapper<GenPar const> gen_par_;
 };
 #endif //BANDCONFIG_HPP

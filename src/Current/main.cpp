@@ -6,18 +6,10 @@
 
 int main()
 {
-    using GenAlg = GeneticAlgorithm<Constants::Genetic::POPULATION_SIZE, FileDataType::Unipolar>;
+    using GenAlg = GeneticAlgorithm<Constants::Genetic::POPULATION_SIZE, Constants::General::FILE_DATA_TYPE>;
 
-    GenPar config{};
-    config.Set(GenPar::Params::BitWidth, 11);
-    config.Set(GenPar::Params::Quantisation, 11);
-    config.Set(GenPar::Params::DataRange, 2048);
-    // config.Set(GenPar::Params::FileDataReadLimit, std::numeric_limits<int64_t>::max());
-    config.Set(GenPar::Params::FileDataReadLimit, 20000);
-    config.Set(GenPar::Params::MaxBands, std::numeric_limits<int64_t>::max());
-    config.Set(GenPar::Params::HeaderType, static_cast<int64_t>(HeaderType::Truncated));
     //
-    FileData<FileDataType::Unipolar> files("../Data/MITBIH", std::cref(config));
+    FileData<Constants::General::FILE_DATA_TYPE> files("../Data/MITBIH");
     files.ReadCSVFiles(1);
     //
     // // FileData<FileDataType::Bipolar> files("../Data/BONN/Healthy");
@@ -28,10 +20,6 @@ int main()
     // std::cout << std::format("Calculated average compression ratio: {:4.5}", FindCompressionRatio1<FileDataType::Unipolar>(files, random_config, config)) << std::endl;
     // random_config.Print();
 
-    GenAlg ga(std::cref(config), files);
+    GenAlg ga(files);
     ga.Run();
-    // ga.PrintPopulation();
-    // ga.EvaluatePopulation();
-    // ga.PrintPopulation();
-    // std::cin.get();
 }

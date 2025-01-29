@@ -25,14 +25,14 @@
 #include "FileData.hpp"
 
 template <FileDataType type>
-inline double FindCompressionRatio(FileData<type> const& file_data, BandConfig const& band_config, GenPar const& gen_par)
+inline double FindCompressionRatio(FileData<type> const& file_data, BandConfig const& band_config)
 {
     if (file_data.GetFileData().empty()) return -1;
     double compression_ratio{};
     std::vector<uint32_t> const& bands   = band_config.GetBandConfig();
     std::vector<uint32_t> const& headers = band_config.GetHeaderConfig();
     std::vector<RawDataType> const& data = file_data.GetFileData();
-    uint64_t const data_bit_width = gen_par.Get(GenPar::Params::BitWidth);
+    uint64_t const data_bit_width = Constants::General::BIT_WIDTH;
     uint64_t bit_count = headers.back() + data_bit_width;
 
     auto const init_bands_cum = [&bands]() -> std::vector<uint32_t>
@@ -45,7 +45,7 @@ inline double FindCompressionRatio(FileData<type> const& file_data, BandConfig c
         }
         return result;
     };
-    std::vector<uint32_t> const bands_cum(init_bands_cum());
+    std::vector<uint32_t> const bands_cum(std::move(init_bands_cum()));
 
     for (auto it = data.cbegin(); it != std::prev(data.cend()); ++it)
     {

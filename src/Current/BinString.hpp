@@ -11,22 +11,21 @@
 class BinString
 {
 public:
-    explicit BinString(std::reference_wrapper<GenPar const> gp):
-        gp_(gp),
+    constexpr BinString():
         data_(),
-        active_bits_(gp_.get().Get(GenPar::Params::BitWidth) - 1)
+        active_bits_(Constants::General::BIT_WIDTH - 1)
     {}
-    BinString(BandConfig const& bc, std::reference_wrapper<GenPar const> gp):
-        BinString(gp)
+    constexpr BinString(BandConfig const& bc):
+        BinString()
     {
         Construct(bc);
     }
-    BinString(uint64_t const bits, std::reference_wrapper<GenPar const> gp):
-        BinString(gp)
+    constexpr BinString(uint64_t const bits):
+        BinString()
     {
         data_ = bits;
     }
-    void Construct(BandConfig const& bc)
+    constexpr void Construct(BandConfig const& bc)
     {
         auto const& bands = bc.GetBandConfig();
         data_ = 0;
@@ -47,7 +46,7 @@ public:
     [[nodiscard]]
     uint64_t GetData() const { return data_; }
     [[nodiscard]]
-    BandConfig Destruct()const
+    constexpr BandConfig Destruct()const
     {
         std::vector<uint32_t> bands{1};
         for (int i = 0; i < active_bits_; ++i)
@@ -61,10 +60,9 @@ public:
                 ++bands[bands.size()-1];
             }
         }
-        return {std::move(bands), gp_};
+        return {std::move(bands)};
     }
 private:
-    std::reference_wrapper<GenPar const> gp_;
     uint64_t data_;
     uint8_t active_bits_;
 };

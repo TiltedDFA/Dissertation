@@ -11,22 +11,22 @@
 #include <algorithm>
 
 #include "BandConfig.hpp"
+#include "Utils.hpp"
 
 
 template<FileDataType type>
 class FileData
 {
 public:
-    explicit FileData(std::string_view const path, std::reference_wrapper<GenPar const>&& gp):
+    explicit FileData(std::string_view const path):
         path_to_files_(path),
-        file_data_(),
-        gen_par_(gp)
+        file_data_()
         {}
     [[nodiscard]]
     constexpr RawDataType QuantiseData(double data) const
     {
-        auto const data_range = static_cast<double>(gen_par_.get().Get(GenPar::Params::DataRange));
-        auto const quantisation = static_cast<double>(gen_par_.get().Get(GenPar::Params::Quantisation));
+        auto const data_range = Constants::General::DATA_RANGE;
+        auto const quantisation = Constants::General::QUANTISATION;
         if constexpr (type == FileDataType::Unipolar)
         {
             data *= std::pow(2.0, quantisation) / data_range;
@@ -48,7 +48,7 @@ public:
     void ReadCSVFiles(uint32_t const term)
     {
         auto const files = FindCSVFiles();
-        std::size_t const data_limit = gen_par_.get().Get(GenPar::Params::FileDataReadLimit);
+        std::size_t const data_limit = Constants::General::FILE_DATA_READ_LIMIT;
         for (auto const& f : files)
         {
             std::ifstream file(f);
@@ -103,9 +103,9 @@ private:
         return terms;
     }
 private:
+
     std::string const path_to_files_;
     std::vector<RawDataType> file_data_;
-    std::reference_wrapper<GenPar const> gen_par_;
 };
 
 

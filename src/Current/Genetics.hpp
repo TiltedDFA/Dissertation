@@ -21,9 +21,8 @@ template<size_t POPULATION_SIZE, FileDataType FILE_DATA_TYPE>
 class GeneticAlgorithm
 {
 public:
-    explicit GeneticAlgorithm(std::reference_wrapper<GenPar const>&& gp, FileData<FILE_DATA_TYPE>& data):
+    explicit GeneticAlgorithm(FileData<FILE_DATA_TYPE>& data):
         mt_(std::random_device{}()),
-        gen_par_(gp),
         bands_(InitBands()),
         data_(data),
         temperature_(Constants::Genetic::INITIAL_TEMPERATURE)
@@ -32,7 +31,7 @@ public:
     }
     void EvaluatePopulation()
     {
-        std::ranges::for_each(bands_,[this](BandConfig& band){band.SetFitnessScore(FindCompressionRatio(data_,band,gen_par_));});
+        std::ranges::for_each(bands_,[this](BandConfig& band){band.SetFitnessScore(FindCompressionRatio(data_,band));});
         std::ranges::sort(bands_,[](BandConfig const& band1, BandConfig const& band2) -> bool {return band1.GetFitnessScore() > band2.GetFitnessScore();});
     }
 
@@ -92,7 +91,7 @@ public:
         while (new_population.size() < POPULATION_SIZE - Constants::Genetic::RANDOM_IMMIGRATION_COUNT)
         {
             auto const [fst, snd] = PickPairFromBoltzmannTournamentSelection();
-            auto&& _ = CrossOver({fst, gen_par_}, {snd, gen_par_});
+            auto&& _ = CrossOver({fst}, {snd});
             // auto&& _ = CrossOver({bands_[random_picker(mt_)], gen_par_}, {bands_[random_picker(mt_)], gen_par_});
             new_population.emplace_back(Mutate(std::move(_)).Destruct());
         }
@@ -130,7 +129,7 @@ public:
     [[nodiscard]]
     BinString CrossOver(BinString const& a, BinString const& b)
     {
-        auto const active_bits = gen_par_.get().Get(GenPar::Params::BitWidth) - 1;
+        auto const active_bits = Constants::General::BIT_WIDTH - 1;
         auto const cross_over_point = std::uniform_int_distribution<> {1U, static_cast<int>(active_bits)}(mt_);
         // uint64_t const cross_over_mask = (1U << cross_over_point) - 1;
         uint64_t const active_mask = GenMask(active_bits);
@@ -138,7 +137,7 @@ public:
         // uint64_t const cross_over_upper_mask = active_mask ^ cross_over_point;
         uint64_t const cross_over_upper_mask = active_mask ^ cross_over_lower_mask;
         uint64_t const result = (a.GetData() & cross_over_lower_mask) | (b.GetData() & cross_over_upper_mask);
-        return {result, gen_par_};
+        return {result};
     }
 
     /**
@@ -147,7 +146,7 @@ public:
      */
     BinString&& Mutate(BinString&& bs)
     {
-        auto const active_bits_zero_indexed = gen_par_.get().Get(GenPar::Params::BitWidth) - 2;
+        auto const active_bits_zero_indexed = Constants::General::BIT_WIDTH - 2;
         std::uniform_real_distribution<double> do_mutate(0.0, 1.0);
         std::uniform_int_distribution<> gen_mutate_point{0U, static_cast<int>(active_bits_zero_indexed)};
         uint64_t& bs_data = bs.GetData();
@@ -196,8 +195,8 @@ private:
     constexpr BandConfig GenerateRandomBand()
     {
         std::vector<uint32_t> bands{1};
-        auto const bit_width = gen_par_.get().Get(GenPar::Params::BitWidth);
-        for (int i = 0; i < bit_width - 1; ++i)
+        auto const bit_width = Constants::General::BIT_WIDTH;
+        for (size_t i = 0; i < bit_width - 1; ++i)
         {
             if (mt_() & 1ULL)
             {
@@ -208,7 +207,7 @@ private:
                 ++bands[bands.size()-1];
             }
         }
-        return {std::move(bands), gen_par_};
+        return {std::move(bands)};
     }
 
     template <std::size_t... Indices>
@@ -223,7 +222,6 @@ private:
     }
 private:
     std::mt19937 mt_;
-    std::reference_wrapper<GenPar const> gen_par_;
     std::array<BandConfig, POPULATION_SIZE> bands_;
     FileData<FILE_DATA_TYPE>& data_;
     double temperature_;
