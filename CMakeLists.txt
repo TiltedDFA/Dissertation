@@ -24,7 +24,8 @@ add_executable(Real
         src/Current/Genetics.cpp
         src/Current/Genetics.hpp
         src/Current/BinString.hpp
-#        src/Current/EncoderProtoType.cpp
+        src/Current/BinString.cpp
+        #        src/Current/EncoderProtoType.cpp
 #        src/Current/EncoderProtoType.hpp
 )
 target_compile_options(Real PUBLIC -Wall -Wextra -Wpedantic)

@@ -31,38 +31,46 @@
 
 // #include "Types.hpp"
 
-constexpr double ByteToMB = 1024.0 * 1024.0;
-
-template<typename T>
-requires std::is_integral_v<T>
-constexpr uint8_t FindMS1B(T inp)
+namespace Utils
 {
-    uint8_t count{};
-    while (inp >>= 1)
-        ++count;
+    constexpr double ByteToMB = 1024.0 * 1024.0;
 
-    return count;
+    template<typename T>
+    requires std::is_integral_v<T>
+    constexpr uint8_t FindMS1B(T inp)
+    {
+        uint8_t count{};
+        while (inp >>= 1)
+            ++count;
+
+        return count;
+    }
+
+    /**
+     * Generates a bitmask up to the input value
+     *
+     * E.g. 3 returns 0b111
+     * @param inp non-zero int type value
+     * @return bit mask
+     */
+    template<typename T>
+    requires std::is_integral_v<T>
+    constexpr T GenMask(T inp)
+    {
+        return (static_cast<T>(1) << inp) - 1;
+    }
+    template<typename T, T inp>
+    requires std::is_integral_v<T>
+    consteval T GenMask()
+    {
+        return (static_cast<T>(1) << inp) - 1;
+    }
+
+    [[nodiscard]]
+    constexpr uint64_t PlaceBit(size_t where) noexcept {return 1ULL << where;}
 }
 
-/**
- * Generates a bitmask up to the input value
- *
- * E.g. 3 returns 0b111
- * @param inp non-zero int type value
- * @return bit mask
- */
-template<typename T>
-requires std::is_integral_v<T>
-constexpr T GenMask(T inp)
-{
-    return (static_cast<T>(1) << inp) - 1;
-}
-template<typename T, T inp>
-requires std::is_integral_v<T>
-consteval T GenMask()
-{
-    return (static_cast<T>(1) << inp) - 1;
-}
+
 template<typename T>
 class ScopedTimer
 {

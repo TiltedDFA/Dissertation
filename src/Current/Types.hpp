@@ -55,6 +55,7 @@ namespace Constants
     {
         inline constexpr size_t BIT_WIDTH = 11;
         inline constexpr size_t QUANTISATION = 11;
+        inline constexpr size_t NUM_BANDS = BIT_WIDTH - 1;
         inline constexpr size_t DATA_RANGE = 2048;
         inline constexpr size_t FILE_DATA_READ_LIMIT = 20'000;
         inline constexpr size_t MAX_BANDS = std::numeric_limits<size_t>::max();
@@ -79,11 +80,14 @@ namespace Constants
                             void>>>>;
             inline constexpr size_t TOP_BIT_LOC = (sizeof(OneVarT) * 8) - 1;
             inline constexpr size_t BANDS_LOC = 0;
-            inline constexpr size_t BANDS_SIZE = ::Constants::General::BIT_WIDTH - 1;
+            inline constexpr size_t BANDS_SIZE = ::Constants::General::NUM_BANDS;
             inline constexpr size_t HEADERS_LOC = BANDS_SIZE;
             inline constexpr size_t HEADERS_SIZE = ::Constants::General::BIT_WIDTH;
             inline constexpr bool NEEDS_ARRAY = VAR_COUNT > 1;
         }
+        //for simplicity’s sake, for now will not support arrays of words
+        static_assert(!_::NEEDS_ARRAY, "USED UNSUPPORTED FEATURE: BIT STRING ARRAYS (BIT WIDTH WAS >= 33)");
+
         using Type =    std::conditional_t<(_::NEEDS_ARRAY),
                         std::array<uint64_t, _::VAR_COUNT>,
                         _::OneVarT>;
@@ -92,15 +96,28 @@ namespace Constants
 
         constexpr uint64_t GetBandSeparators(ViewParamType t) noexcept
         {
-            return (t >> _::BANDS_LOC) & GenMask<size_t, _::BANDS_SIZE>();
+            return (t >> _::BANDS_LOC) & Utils::GenMask<size_t, _::BANDS_SIZE>();
         }
+
+        /**
+         *  When using truncated binary, we will only ever have 2 lengths of data (K, K-1),
+         *  therefore the headers within this binary string will store 0 if they are of length K
+         *  and 1 if they're of length K-1. (Might be possible to de
+         *
+         *
+         *
+         */
         constexpr uint64_t GetHeaders(ViewParamType t) noexcept
         {
-            return (t >> _::HEADERS_LOC) & GenMask<size_t, _::HEADERS_SIZE>();
+            return (t >> _::HEADERS_LOC) & Utils::GenMask<size_t, _::HEADERS_SIZE>();
         }
         constexpr bool HasZeroState(ViewParamType t) noexcept
         {
             return static_cast<bool>(t & ~(1ULL << _::TOP_BIT_LOC));
+        }
+        constexpr void SetZeroState(Type& t, bool b) noexcept
+        {
+            t = (t & ~(1ULL << _::TOP_BIT_LOC)) | (int(b) << _::TOP_BIT_LOC);
         }
     }
 }
