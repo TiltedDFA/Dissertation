@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <format>
 #include <functional>
+#include <type_traits>
 
 
 using RawDataType   = uint32_t;
@@ -62,6 +63,37 @@ namespace Constants
         inline constexpr HeaderType HEADER_TYPE = HeaderType::Truncated;
         inline constexpr FileDataType FILE_DATA_TYPE = FileDataType::Unipolar;
     }
+
+    /**
+     * This namespace is used for helpers to the BinString class.
+     *
+     * A binary string of length N, where N is BIT_WIDTH * 2, will store:
+     *  - 1 bit at the top to indicate whether a configuration has a zero state
+     *
+     *  - (N/2) bits in the middle to store the header layout. A header bit
+     *         will be 0 if the header has the value of: ceil(log2(BAND_COUNT))
+     *         and will where the value is: floor(log2(BAND_COUNT))
+     *
+     *  - (N/2 - 1) bits will be for storing band separators. the size of a band
+     *          will be the distance between the separators.
+     *
+     *
+     *   For a bit_width of 3, an uint8_t will be used for storage.
+     *   Let:
+     *      Z = the zero bit
+     *      H = a header bit
+     *      B = a band bit
+     *      X = an unused bit
+     *
+     *  The internal representation will appear as follows:
+     *      ZHHH XXBB
+     *  Where Z is the MSB.
+     *
+     *  The order for the data should be inserted is that a higher bit corresponds to
+     *  the first element. In which a band configuration vector v, with the value: {3,1,1,7}
+     *  will be stored in the band bit section with the following value:
+     *      001 1100 0000
+     */
     namespace BinaryString
     {
         /*
@@ -71,7 +103,7 @@ namespace Constants
         */
         namespace _
         {
-            inline constexpr size_t BITS_NEEDED = (::Constants::General::BIT_WIDTH * 2) - 1;
+            inline constexpr size_t BITS_NEEDED = ::Constants::General::BIT_WIDTH * 2;
             inline constexpr size_t VAR_COUNT =  (BITS_NEEDED <= 64) ? 1 : (BITS_NEEDED + 63) / 64;
             using OneVarT = std::conditional_t<(BITS_NEEDED <= 8), uint8_t,
                             std::conditional_t<(BITS_NEEDED <= 16), uint16_t,
@@ -84,6 +116,10 @@ namespace Constants
             inline constexpr size_t HEADERS_LOC = BANDS_SIZE;
             inline constexpr size_t HEADERS_SIZE = ::Constants::General::BIT_WIDTH;
             inline constexpr bool NEEDS_ARRAY = VAR_COUNT > 1;
+            inline constexpr size_t HEADER_MASK = Utils::GenMask<size_t, _::HEADERS_SIZE>();
+            inline constexpr size_t HEADER_MASK_INPLACE = HEADER_MASK << HEADERS_LOC;
+            inline constexpr size_t BAND_MASK = Utils::GenMask<size_t, _::BANDS_SIZE>();
+            inline constexpr size_t BAND_MASK_INPLACE = BAND_MASK << BANDS_LOC;
         }
         //for simplicity’s sake, for now will not support arrays of words
         static_assert(!_::NEEDS_ARRAY, "USED UNSUPPORTED FEATURE: BIT STRING ARRAYS (BIT WIDTH WAS >= 33)");
@@ -98,6 +134,19 @@ namespace Constants
         {
             return (t >> _::BANDS_LOC) & Utils::GenMask<size_t, _::BANDS_SIZE>();
         }
+        constexpr void SetBandSeparators(Type& t, ViewParamType value) noexcept
+        {
+            if (std::is_constant_evaluated())
+            {
+                static_assert((value & _::BAND_MASK) == value, "Value passed to set bands is too large");
+            }
+            else
+            {
+                assert(((void)"Value passed to set bands is too large", (value & _::BAND_MASK) == value));
+            }
+            t &= ~_::BAND_MASK_INPLACE;
+            t |= value << _::BANDS_LOC;
+        }
 
         /**
          *  When using truncated binary, we will only ever have 2 lengths of data (K, K-1),
@@ -109,15 +158,75 @@ namespace Constants
          */
         constexpr uint64_t GetHeaders(ViewParamType t) noexcept
         {
-            return (t >> _::HEADERS_LOC) & Utils::GenMask<size_t, _::HEADERS_SIZE>();
+            return (t >> _::HEADERS_LOC) & _::HEADER_MASK;
+        }
+
+        /**
+         * Should not be used directly.
+         */
+        constexpr void SetHeaders(Type& t, ViewParamType value) noexcept
+        {
+            if (std::is_constant_evaluated())
+            {
+                static_assert((value & _::HEADER_MASK) == value, "Value passed to set headers is too large");
+            }
+            else
+            {
+                assert(((void)"Value passed to set headers is too large", (value & _::HEADER_MASK) == value));
+            }
+            t &= ~_::HEADER_MASK_INPLACE;
+            t |= value << _::HEADERS_LOC;
+        }
+        /*
+        *
+        *   If n is a power of two, then the coded value for 0 ≤ x < n is the simple binary code for x of length log2(n).
+        *   Otherwise let k = floor(log2(n)), such that 2^k < n < 2^k+1 and let u = 2^k+1 − n.
+        *
+        * Truncated binary encoding assigns the first u symbols codewords of length k and then
+        *   assigns the remaining n − u symbols the last n − u codewords of length k + 1.
+        * Because all the codewords of length k + 1 consist of an unassigned codeword of length k
+        *   with a "0" or "1" appended, the resulting code is a prefix code.
+        *
+        *
+        * src: https://en.wikipedia.org/wiki/Truncated_binary_encoding
+        */
+        /*
+        *
+        uint32_t const count = band_config_.size() + 1;
+        // if 1 then n is power of 2, should never be zero
+        bool const can_truncate = std::popcount(count) > 1;
+        if (can_truncate)
+        {
+            uint32_t const k = Utils::FindK(count);
+            uint32_t const u = ((1 << (k + 1)) - count);
+            std::fill_n(header_config_.begin(), u, k);
+            std::fill_n(header_config_.begin() + u, count - u - 1, k + 1);
+        }
+        else
+        {
+            std::ranges::fill(header_config_, static_cast<uint32_t>(std::log2(count)));
+        }
+         */
+        constexpr void CalculateHeaders(Type& t) noexcept
+        {
+            if constexpr (::Constants::General::HEADER_TYPE == HeaderType::Uniform)
+            {
+                //fill all with 0s
+                SetHeaders(t, ~_::HEADER_MASK);
+            }
+            else
+            {
+
+                if ()
+            }
         }
         constexpr bool HasZeroState(ViewParamType t) noexcept
         {
             return static_cast<bool>(t & ~(1ULL << _::TOP_BIT_LOC));
         }
-        constexpr void SetZeroState(Type& t, bool b) noexcept
+        constexpr void SetZeroState(Type& t, bool const b) noexcept
         {
-            t = (t & ~(1ULL << _::TOP_BIT_LOC)) | (int(b) << _::TOP_BIT_LOC);
+            t = (t & ~(1ULL << _::TOP_BIT_LOC)) | (static_cast<int>(b) << _::TOP_BIT_LOC);
         }
     }
 }

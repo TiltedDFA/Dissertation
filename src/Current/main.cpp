@@ -3,6 +3,7 @@
 //
 #include "FitnessFunction.hpp"
 #include "Genetics.hpp"
+#include <iostream>
 
 int main()
 {

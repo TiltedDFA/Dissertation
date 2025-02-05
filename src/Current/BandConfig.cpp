@@ -8,12 +8,7 @@
 
 namespace
 {
-    constexpr uint32_t FindK(uint32_t count) noexcept
-    {
-        uint32_t k = 0, t = count;
-        while (t > 1) { ++k; t >>= 1;}
-        return k;
-    }
+
 }
 BandConfig::BandConfig(std::vector<uint32_t>&& band_config):
         band_config_(std::move(band_config)),
@@ -26,13 +21,14 @@ BandConfig::BandConfig(std::vector<uint32_t>&& band_config):
         std::ranges::fill(header_config_, header_bit_width);
     }
     else
+
     {
         uint32_t const count = band_config_.size() + 1;
         // if 1 then n is power of 2, should never be zero
         bool const can_truncate = std::popcount(count) > 1;
         if (can_truncate)
         {
-            uint32_t const k = FindK(count);
+            uint32_t const k = Utils::FindK(count);
             uint32_t const u = ((1 << (k + 1)) - count);
             std::fill_n(header_config_.begin(), u, k);
             std::fill_n(header_config_.begin() + u, count - u - 1, k + 1);

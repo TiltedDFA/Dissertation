@@ -68,6 +68,17 @@ namespace Utils
 
     [[nodiscard]]
     constexpr uint64_t PlaceBit(size_t where) noexcept {return 1ULL << where;}
+
+    /**
+     * Effectively just a log2 but specfically for integers (std::log is for doubles)
+     */
+    constexpr uint32_t FindK(uint32_t count) noexcept
+    {
+        uint32_t k{};
+        // while (count > 1) { ++k; count >>= 1;}
+        while (count >>= 1) ++k;
+        return k;
+    }
 }
 
 

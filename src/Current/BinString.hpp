@@ -14,11 +14,14 @@ class BinString
 {
 public:
     using type = Constants::BinaryString::Type;
+    using view_type = Constants::BinaryString::ViewParamType;
 
-    constexpr BinString(): data_() {}
+
+    constexpr BinString(): data_(), num_bands_(0) {}
 
     //if this constructor is used, will generate a random band configuration
     explicit BinString(std::mt19937& rng);
+    explicit BinString(std::vector<uint8_t> const& configurations);
     // constexpr BinString():
     //     data_(),
     //     active_bits_(Constants::General::BIT_WIDTH - 1)
@@ -72,6 +75,7 @@ public:
     // }
 private:
     type data_;
-
+    //A configuration's number of bands doesn't necessarily == max_bands, storing for optimisation
+    size_t num_bands_;
 };
 #endif //BINSTRING_HPP
