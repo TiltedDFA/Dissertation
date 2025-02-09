@@ -78,3 +78,8 @@ void BinString::ShuffleHeaders(std::mt19937& rng)
         new_headers |= static_cast<type>(1) << dist(rng);
     SetHeaders(data_, new_headers);
 }
+
+uint64_t BinString::GetUniformHeaderSize() const
+{
+    return static_cast<uint64_t>(std::ceil(std::log2(num_bands_)));
+}
