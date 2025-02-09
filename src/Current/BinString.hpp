@@ -26,6 +26,12 @@ public:
     //     data_(),
     //     active_bits_(Constants::General::BIT_WIDTH - 1)
     // {}
+    void ShuffleHeaders(std::mt19937& rng);
+
+    constexpr uint64_t GetUniformHeaderSize()const
+    {
+        return static_cast<uint64_t>(std::ceil(std::log2(num_bands_)));
+    }
     // constexpr BinString(BandConfig const& bc):
     //     BinString()
     // {
@@ -73,6 +79,7 @@ public:
     //     }
     //     return {std::move(bands)};
     // }
+    // CHAR_BIT
 private:
     type data_;
     //A configuration's number of bands doesn't necessarily == max_bands, storing for optimisation

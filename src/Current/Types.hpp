@@ -6,6 +6,8 @@
 #define TYPES_HPP
 
 
+#include <cmath>
+
 #include "Utils.hpp"
 #include <cstdint>
 #include <format>
@@ -90,8 +92,9 @@ namespace Constants
      *  Where Z is the MSB.
      *
      *  The order for the data should be inserted is that a higher bit corresponds to
-     *  the first element. In which a band configuration vector v, with the value: {3,1,1,7}
-     *  will be stored in the band bit section with the following value:
+     *  the first element.
+     *  In which a band configuration vector v, with the value: {3,1,1,7}
+     *  will be stored *in the band bit section* with the following value:
      *      001 1100 0000
      */
     namespace BinaryString
@@ -120,6 +123,11 @@ namespace Constants
             inline constexpr size_t HEADER_MASK_INPLACE = HEADER_MASK << HEADERS_LOC;
             inline constexpr size_t BAND_MASK = Utils::GenMask<size_t, _::BANDS_SIZE>();
             inline constexpr size_t BAND_MASK_INPLACE = BAND_MASK << BANDS_LOC;
+
+
+            // upon further consideration, cannot do something like this as the size of a header
+            // depends on the number of bands which is configuration specific.
+            // inline constexpr uint64_t UNIFORM_HEADER_VALUE = std::ceil(std::log2());
         }
         //for simplicity’s sake, for now will not support arrays of words
         static_assert(!_::NEEDS_ARRAY, "USED UNSUPPORTED FEATURE: BIT STRING ARRAYS (BIT WIDTH WAS >= 33)");
@@ -156,9 +164,10 @@ namespace Constants
          *
          *
          */
-        constexpr uint64_t GetHeaders(ViewParamType t) noexcept
+        constexpr uint64_t GetHeaders(ViewParamType t, size_t const num_headers) noexcept
         {
-            return (t >> _::HEADERS_LOC) & _::HEADER_MASK;
+            return (t >> _::HEADERS_LOC) & Utils::GenMask(num_headers);
+            // return (t >> _::HEADERS_LOC) & _::HEADER_MASK;
         }
 
         /**
@@ -207,17 +216,35 @@ namespace Constants
             std::ranges::fill(header_config_, static_cast<uint32_t>(std::log2(count)));
         }
          */
-        constexpr void CalculateHeaders(Type& t) noexcept
+        //This entire function could do with a few cycles of verification
+        constexpr void CalculateHeaders(Type& t, size_t const header_count) noexcept
         {
             if constexpr (::Constants::General::HEADER_TYPE == HeaderType::Uniform)
             {
                 //fill all with 0s
-                SetHeaders(t, ~_::HEADER_MASK);
+                SetHeaders(t, 0);
             }
             else
             {
-
-                if ()
+//        *   Otherwise let k = floor(log2(n)), such that 2^k < n < 2^k+1 and let u = 2^k+1 − n.
+                bool const can_truncate = std::popcount(header_count) > 1;
+                // if 1 then n is power of 2, should never be zero
+                if (can_truncate)
+                {
+                    //finds 2^(k+1) - n
+                    Type const U = static_cast<Type>(std::ceil(std::log2(header_count))) - header_count;
+                    // Generates a mask of U bits, which would be same as adding a 1 U times in a for loop
+                    Type const Umask = Utils::GenMask(U);
+                    // Shifts the mask to the correct place, as per my specification of early element corresponding
+                    // to higher bits
+                    Type const UMaskShifted = Umask << (header_count - U);
+                    // Set the calculated headers
+                    SetHeaders(t, UMaskShifted);
+                }
+                else
+                {
+                    SetHeaders(t, 0);
+                }
             }
         }
         constexpr bool HasZeroState(ViewParamType t) noexcept
