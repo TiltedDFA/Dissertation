@@ -31,7 +31,7 @@ public:
     }
     void EvaluatePopulation()
     {
-        std::ranges::for_each(bands_,[this](BandConfig& band){band.SetFitnessScore(FindCompressionRatio(data_,band));});
+        std::ranges::for_each(bands_,[this](BandConfig& band){band.SetFitnessScore(FindCompressionRatio(data_, band));});
         std::ranges::sort(bands_,[](BandConfig const& band1, BandConfig const& band2) -> bool {return band1.GetFitnessScore() > band2.GetFitnessScore();});
     }
 
@@ -99,8 +99,7 @@ public:
         {
             new_population.emplace_back(GenerateRandomBand());
         }
-        // if ((HeaderType)gen_par_.get().Get(GenPar::Params::HeaderType) == HeaderType::Truncated)
-        if (true)
+        if constexpr (Constants::General::HEADER_TYPE == HeaderType::Truncated)
         {
             std::for_each(new_population.begin() + Constants::Genetic::ELITE_COUNT, new_population.end(),[this](BandConfig& band){band.ShuffleHeaders(mt_);});
         }
@@ -191,38 +190,16 @@ public:
         for (auto const& band : bands_){band.Print();}
     }
 private:
-    //Generates values uniformly from the probability space
-    constexpr BandConfig GenerateRandomBand()
+    std::array<BinString, POPULATION_SIZE> InitBands()
     {
-        std::vector<uint32_t> bands{1};
-        auto const bit_width = Constants::General::BIT_WIDTH;
-        for (size_t i = 0; i < bit_width - 1; ++i)
+        return [this]<size_t... i>(std::index_sequence<i...>)
         {
-            if (mt_() & 1ULL)
-            {
-                bands.push_back(1);
-            }
-            else
-            {
-                ++bands[bands.size()-1];
-            }
-        }
-        return {std::move(bands)};
-    }
-
-    template <std::size_t... Indices>
-    std::array<BandConfig, POPULATION_SIZE> InitBandsImpl(std::index_sequence<Indices...>)
-    {
-        return { (static_cast<void>(Indices), GenerateRandomBand())... };
-    }
-
-    std::array<BandConfig, POPULATION_SIZE> InitBands()
-    {
-        return InitBandsImpl(std::make_index_sequence<POPULATION_SIZE>{});
+            return std::array<BinString, POPULATION_SIZE>{(static_cast<void>(i), BinString(mt_))...};
+        }(std::make_index_sequence<POPULATION_SIZE>{});
     }
 private:
     std::mt19937 mt_;
-    std::array<BandConfig, POPULATION_SIZE> bands_;
+    std::array<BinString, POPULATION_SIZE> bands_;
     FileData<FILE_DATA_TYPE>& data_;
     double temperature_;
 };

@@ -36,23 +36,30 @@ public:
         type band_data_;
     };
 
-    constexpr BinString(): data_(), num_bands_(0) {}
+    constexpr BinString():
+        data_(),
+        num_bands_(0),
+        fitness_score_(0)
+    {}
 
     //if this constructor is used, will generate a random band configuration
     explicit BinString(std::mt19937& rng);
     explicit BinString(std::vector<uint8_t> const& configurations);
     void ShuffleHeaders(std::mt19937& rng);
-    uint64_t GetUniformHeaderSize()const;
 
+    [[nodiscard]]
+    uint64_t GetUniformHeaderSize()const;
+    [[nodiscard]]
     bool HasZeroBand()const
     {
         return Constants::BinaryString::HasZeroState(data_);
     }
-
+    [[nodiscard]]
     type GetBands()const noexcept
     {
         return Constants::BinaryString::GetBandSeparators(data_);
     }
+    [[nodiscard]]
     type GetHeaders()const
     {
         return Constants::BinaryString::GetHeaders(data_, num_bands_);
@@ -61,11 +68,15 @@ public:
     {
         return {*this};
     }
+    [[nodiscard]]
+    FitnessScore GetFitnessScore()const { return fitness_score_;}
+    void SetFitnessScore(FitnessScore const fitness_score) { fitness_score_ = fitness_score;}
 private:
     void SetBands(view_type band){Constants::BinaryString::SetBandSeparators(data_, band);}
 private:
     type data_;
     //A configuration's number of bands doesn't necessarily == max_bands, storing for optimisation
     size_t num_bands_;
+    FitnessScore fitness_score_;
 };
 #endif //BINSTRING_HPP
