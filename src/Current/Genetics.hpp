@@ -132,8 +132,8 @@ public:
         auto const active_bits = Constants::General::BIT_WIDTH - 1;
         auto const cross_over_point = std::uniform_int_distribution<> {1U, static_cast<int>(active_bits)}(mt_);
         // uint64_t const cross_over_mask = (1U << cross_over_point) - 1;
-        uint64_t const active_mask = GenMask(active_bits);
-        uint64_t const cross_over_lower_mask = GenMask(cross_over_point);
+        uint64_t const active_mask = Utils::GenMask(active_bits);
+        uint64_t const cross_over_lower_mask = Utils::GenMask(cross_over_point);
         // uint64_t const cross_over_upper_mask = active_mask ^ cross_over_point;
         uint64_t const cross_over_upper_mask = active_mask ^ cross_over_lower_mask;
         uint64_t const result = (a.GetData() & cross_over_lower_mask) | (b.GetData() & cross_over_upper_mask);

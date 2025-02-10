@@ -22,42 +22,90 @@
 #include <complex>
 #include <numeric>
 
+#include "BinString.hpp"
 #include "FileData.hpp"
 
+// template <FileDataType type>
+// inline double FindCompressionRatio(FileData<type> const& file_data, BandConfig const& band_config)
+// {
+//     if (file_data.GetFileData().empty()) return -1;
+//     double compression_ratio{};
+//     std::vector<uint32_t> const& bands   = band_config.GetBandConfig();
+//     std::vector<uint32_t> const& headers = band_config.GetHeaderConfig();
+//     std::vector<RawDataType> const& data = file_data.GetFileData();
+//     uint64_t const data_bit_width = Constants::General::BIT_WIDTH;
+//     uint64_t bit_count = headers.back() + data_bit_width;
+//
+//     auto const init_bands_cum = [&bands]() -> std::vector<uint32_t>
+//     {
+//         std::vector<uint32_t> result(bands.size()+1);
+//         result[0] = 0;
+//         for (uint64_t i = 1; i < bands.size()+1; ++i)
+//         {
+//             result[i] = bands[i-1] + result[i - 1];
+//         }
+//         return result;
+//     };
+//     std::vector<uint32_t> const bands_cum(std::move(init_bands_cum()));
+//
+//     for (auto it = data.cbegin(); it != std::prev(data.cend()); ++it)
+//     {
+//         RawDataType const difference = *it ^ *(it + 1);
+//         uint32_t const msb_loc = FindMS1B(difference);
+//         size_t idx{};
+//
+//         while (msb_loc > bands_cum[idx])++idx;
+//
+//         bit_count += bands_cum[idx] + headers[idx - bool(msb_loc)];
+//     }
+//     compression_ratio = static_cast<double>(data_bit_width * data.size()) / static_cast<double>(bit_count);
+//     // PRINTNLF("Raw:\t\t\t\t{}", data_bit_width * data.size());
+//     // PRINTNLF("Compressed:\t\t\t{}", bit_count);
+//     return compression_ratio;
+// }
+
+
+// helper to create array with { 1, 0, 0, 0, 0, ..., 0} at compile time
+
 template <FileDataType type>
-inline double FindCompressionRatio(FileData<type> const& file_data, BandConfig const& band_config)
+double FindCompressionRatio(FileData<type> const& file_data, BinString const& band_config)
 {
     if (file_data.GetFileData().empty()) return -1;
     double compression_ratio{};
-    std::vector<uint32_t> const& bands   = band_config.GetBandConfig();
-    std::vector<uint32_t> const& headers = band_config.GetHeaderConfig();
-    std::vector<RawDataType> const& data = file_data.GetFileData();
-    uint64_t const data_bit_width = Constants::General::BIT_WIDTH;
-    uint64_t bit_count = headers.back() + data_bit_width;
 
-    auto const init_bands_cum = [&bands]() -> std::vector<uint32_t>
+    uint64_t const header_uniform_size = band_config.GetUniformHeaderSize();
+    Constants::BinaryString::Type const headers = band_config.GetHeaders();
+    Constants::BinaryString::Type const bands = band_config.GetBands();
+    std::vector<RawDataType> const& data = file_data.GetFileData();
+
+    uint64_t bit_count = header_uniform_size - (headers & 1) + Constants::General::BIT_WIDTH;
+
+    std::array<size_t, Constants::General::BIT_WIDTH> bands_cum {};
+    size_t active_idx = band_config.HasZeroBand();
+
+    for (uint64_t i = 0; i < Constants::General::BIT_WIDTH; ++i)
     {
-        std::vector<uint32_t> result(bands.size()+1);
-        result[0] = 0;
-        for (uint64_t i = 1; i < bands.size()+1; ++i)
+        if ((bands >> i) & 1)
         {
-            result[i] = bands[i-1] + result[i - 1];
+            bands_cum[++active_idx] = bands_cum[active_idx - 1];
         }
-        return result;
-    };
-    std::vector<uint32_t> const bands_cum(std::move(init_bands_cum()));
+        else
+        {
+            ++bands_cum[active_idx];
+        }
+    }
 
     for (auto it = data.cbegin(); it != std::prev(data.cend()); ++it)
     {
         RawDataType const difference = *it ^ *(it + 1);
-        uint32_t const msb_loc = FindMS1B(difference);
+        uint32_t const msb_loc = Utils::FindMS1B(difference);
         size_t idx{};
 
         while (msb_loc > bands_cum[idx])++idx;
 
-        bit_count += bands_cum[idx] + headers[idx - bool(msb_loc)];
+        bit_count += bands_cum[idx] + (header_uniform_size - (headers >> (idx - bool(msb_loc))) & 1);
     }
-    compression_ratio = static_cast<double>(data_bit_width * data.size()) / static_cast<double>(bit_count);
+    compression_ratio = static_cast<double>(Constants::General::BIT_WIDTH * data.size()) / static_cast<double>(bit_count);
     // PRINTNLF("Raw:\t\t\t\t{}", data_bit_width * data.size());
     // PRINTNLF("Compressed:\t\t\t{}", bit_count);
     return compression_ratio;

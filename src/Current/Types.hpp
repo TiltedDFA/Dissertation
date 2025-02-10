@@ -144,14 +144,8 @@ namespace Constants
         }
         constexpr void SetBandSeparators(Type& t, ViewParamType value) noexcept
         {
-            if (std::is_constant_evaluated())
-            {
-                static_assert((value & _::BAND_MASK) == value, "Value passed to set bands is too large");
-            }
-            else
-            {
-                assert(((void)"Value passed to set bands is too large", (value & _::BAND_MASK) == value));
-            }
+            assert(((void)"Value passed to set bands is too large", (value & _::BAND_MASK) == value));
+
             t &= ~_::BAND_MASK_INPLACE;
             t |= value << _::BANDS_LOC;
         }
@@ -175,14 +169,9 @@ namespace Constants
          */
         constexpr void SetHeaders(Type& t, ViewParamType value) noexcept
         {
-            if (std::is_constant_evaluated())
-            {
-                static_assert((value & _::HEADER_MASK) == value, "Value passed to set headers is too large");
-            }
-            else
-            {
-                assert(((void)"Value passed to set headers is too large", (value & _::HEADER_MASK) == value));
-            }
+
+            assert(((void)"Value passed to set headers is too large", (value & _::HEADER_MASK) == value));
+
             t &= ~_::HEADER_MASK_INPLACE;
             t |= value << _::HEADERS_LOC;
         }

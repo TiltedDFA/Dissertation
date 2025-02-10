@@ -44,13 +44,25 @@ public:
     void ShuffleHeaders(std::mt19937& rng);
     uint64_t GetUniformHeaderSize()const;
 
+    bool HasZeroBand()const
+    {
+        return Constants::BinaryString::HasZeroState(data_);
+    }
+
+    type GetBands()const noexcept
+    {
+        return Constants::BinaryString::GetBandSeparators(data_);
+    }
+    type GetHeaders()const
+    {
+        return Constants::BinaryString::GetHeaders(data_, num_bands_);
+    }
     ScopedRawBandReference GetBandsScoped()
     {
         return {*this};
     }
 private:
     void SetBands(view_type band){Constants::BinaryString::SetBandSeparators(data_, band);}
-    type GetBands()const{return Constants::BinaryString::GetBandSeparators(data_); }
 private:
     type data_;
     //A configuration's number of bands doesn't necessarily == max_bands, storing for optimisation
