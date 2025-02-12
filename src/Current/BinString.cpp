@@ -26,7 +26,7 @@ BinString::BinString(std::mt19937 &rng):
     //ensuring that there is no more bands than the permitted amount
     assert(((void)"",
         data_ ==
-        (data_ & GenMask<uint64_t, Constants::General::NUM_BANDS>()))
+        (data_ & Utils::GenMask<uint64_t, Constants::General::NUM_BANDS>()))
         );
 }
 //     for (auto const& band : bands)

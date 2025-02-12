@@ -7,7 +7,7 @@
 
 int main()
 {
-    using GenAlg = GeneticAlgorithm<Constants::Genetic::POPULATION_SIZE, Constants::General::FILE_DATA_TYPE>;
+    // using GenAlg = GeneticAlgorithm<Constants::Genetic::POPULATION_SIZE, Constants::General::FILE_DATA_TYPE>;
 
     //
     FileData<Constants::General::FILE_DATA_TYPE> files("../Data/MITBIH");
@@ -21,6 +21,6 @@ int main()
     // std::cout << std::format("Calculated average compression ratio: {:4.5}", FindCompressionRatio1<FileDataType::Unipolar>(files, random_config, config)) << std::endl;
     // random_config.Print();
 
-    GenAlg ga(files);
+    GeneticAlgorithm ga(files);
     ga.Run();
 }

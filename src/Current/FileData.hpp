@@ -10,7 +10,7 @@
 #include <filesystem>
 #include <algorithm>
 
-#include "BandConfig.hpp"
+#include "Types.hpp"
 #include "Utils.hpp"
 
 

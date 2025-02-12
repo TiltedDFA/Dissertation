@@ -7,8 +7,8 @@
 
 #include "BinString.hpp"
 #include "FitnessFunction.hpp"
-
-
+#include "StackVector.hpp"
+#include "Types.hpp"
 
 #include <execution>
 #include <random>
@@ -16,52 +16,57 @@
 #include <bitset>
 #include <ranges>
 
-
-template<size_t POPULATION_SIZE, FileDataType FILE_DATA_TYPE>
+using FileDataMan = FileData<Constants::General::FILE_DATA_TYPE>;
+using BoltTourProb = StackVector<double, Constants::Genetic::BOLTZMANN_TOURNAMENT_SIZE>;
+using BoltTourPart = StackVector<size_t, Constants::Genetic::BOLTZMANN_TOURNAMENT_SIZE>;
+using NewPopVec = StackVector<BinString, Constants::Genetic::POPULATION_SIZE>;
 class GeneticAlgorithm
 {
 public:
-    explicit GeneticAlgorithm(FileData<FILE_DATA_TYPE>& data):
+    explicit GeneticAlgorithm(FileDataMan& data):
         mt_(std::random_device{}()),
         bands_(InitBands()),
         data_(data),
         temperature_(Constants::Genetic::INITIAL_TEMPERATURE)
     {
-        static_assert(POPULATION_SIZE > 5, "Population size must be greater than 0");
+        static_assert(Constants::Genetic::POPULATION_SIZE > 5, "Population size must be greater than 0");
     }
     void EvaluatePopulation()
     {
-        std::ranges::for_each(bands_,[this](BandConfig& band){band.SetFitnessScore(FindCompressionRatio(data_, band));});
-        std::ranges::sort(bands_,[](BandConfig const& band1, BandConfig const& band2) -> bool {return band1.GetFitnessScore() > band2.GetFitnessScore();});
+        std::ranges::for_each(bands_,[this](BinString& band){band.SetFitnessScore(FindCompressionRatio(data_, band));});
+        std::ranges::sort(bands_, [](BinString const& band1, BinString const& band2) -> bool {return band1.GetFitnessScore() > band2.GetFitnessScore();});
     }
 
     [[nodiscard]]
-    std::vector<double> CalcBoltzmannProbablities(std::vector<BandConfig const*> const& selected_participants) const
+    BoltTourProb CalcBoltzmannProbablities(BoltTourPart const& selected_participants) const
     {
-        std::vector<double> boltzmannProbabilities(Constants::Genetic::BOLTZMANN_TOURNAMENT_SIZE);
+        BoltTourProb boltzmannProbabilities;
         double total{};
         for (auto const selected_participant : selected_participants)
         {
-            total += std::exp(selected_participant->GetFitnessScore() / temperature_);
+            total += std::exp(bands_[selected_participant].GetFitnessScore() / temperature_);
         }
-        for (size_t i = 0; i < selected_participants.size(); ++i)
+        for (auto const selected_participant : selected_participants)
         {
-            boltzmannProbabilities[i] = std::exp(selected_participants[i]->GetFitnessScore() / temperature_) / total;
+            boltzmannProbabilities.push_back(std::exp(bands_[selected_participant].GetFitnessScore() / temperature_) / total);
         }
         return boltzmannProbabilities;
     }
     //can't mark const since it changes the mersenne twister value
-    std::pair<BandConfig const&, BandConfig const&> PickPairFromBoltzmannTournamentSelection()
+    std::pair<size_t const, size_t const> PickPairFromBoltzmannTournamentSelection()
     {
-        std::uniform_int_distribution<size_t> participant_picker(0,POPULATION_SIZE-1);
-        std::vector<BandConfig const*> participants;
+        std::uniform_int_distribution<size_t> participant_picker(0, Constants::Genetic::POPULATION_SIZE - 1);
+        BoltTourPart participants;
+
         for (size_t i = 0; i < Constants::Genetic::BOLTZMANN_TOURNAMENT_SIZE; ++i)
         {
-            participants.emplace_back(&bands_[participant_picker(mt_)]);
+            participants.emplace_back(participant_picker(mt_));
         }
-        std::vector<double> const boltzmannProbabilities = CalcBoltzmannProbablities(participants);
+
+        BoltTourProb const boltzmannProbabilities = CalcBoltzmannProbablities(participants);
         std::discrete_distribution<> parent_picker(boltzmannProbabilities.cbegin(), boltzmannProbabilities.cend());
-        return {*participants[parent_picker(mt_)], *participants[parent_picker(mt_)]};
+
+        return {participants[parent_picker(mt_)], participants[parent_picker(mt_)]};
     }
 
     /**
@@ -70,7 +75,7 @@ public:
      */
     void GenerateNewPopulation()
     {
-        std::vector<BandConfig> new_population;
+        NewPopVec new_population;
         // std::vector<BandConfig> old_population(bands_.cbegin(), bands_.cend());
         //assumes sorted population
 
@@ -81,32 +86,38 @@ public:
             //to later be able to do vector.back() and .pop()
             auto max_elem =
                 std::max_element(bands_.cbegin(), bands_.cend(),
-                    [](BandConfig const& band1, BandConfig const& band2)
+                    [](BinString const& band1, BinString const& band2)
                         {return band1.GetFitnessScore() < band2.GetFitnessScore();}
                         );
             new_population.emplace_back(*max_elem);
             // old_population.erase(max_elem);
         }
-        std::uniform_int_distribution<> random_picker(0, POPULATION_SIZE - 1);
-        while (new_population.size() < POPULATION_SIZE - Constants::Genetic::RANDOM_IMMIGRATION_COUNT)
+        std::uniform_int_distribution<> random_picker(0, Constants::Genetic::POPULATION_SIZE - 1);
+        while (new_population.size() < Constants::Genetic::POPULATION_SIZE - Constants::Genetic::RANDOM_IMMIGRATION_COUNT)
         {
             auto const [fst, snd] = PickPairFromBoltzmannTournamentSelection();
-            auto&& _ = CrossOver({fst}, {snd});
-            // auto&& _ = CrossOver({bands_[random_picker(mt_)], gen_par_}, {bands_[random_picker(mt_)], gen_par_});
-            new_population.emplace_back(Mutate(std::move(_)).Destruct());
+            BinString new_band1{bands_[fst]}, new_band2{bands_[snd]};
+
+            CrossOver(new_band1, new_band2);
+            Mutate(new_band1);
+            Mutate(new_band2);
+            new_population.emplace_back(new_band1);
+            new_population.emplace_back(new_band2);
         }
         for (size_t i = 0; i < Constants::Genetic::RANDOM_IMMIGRATION_COUNT; ++i)
         {
-            new_population.emplace_back(GenerateRandomBand());
+            //gens new random binstrings using the random constructor.
+            new_population.emplace_back(mt_);
         }
         if constexpr (Constants::General::HEADER_TYPE == HeaderType::Truncated)
         {
-            std::for_each(new_population.begin() + Constants::Genetic::ELITE_COUNT, new_population.end(),[this](BandConfig& band){band.ShuffleHeaders(mt_);});
+            std::for_each(new_population.begin() + Constants::Genetic::ELITE_COUNT, new_population.end(),[this](BinString& band){band.ShuffleHeaders(mt_);});
         }
-        for (size_t i = 0; i < new_population.size(); ++i)
-        {
-            bands_[i] = new_population[i];
-        }
+        // for (size_t i = 0; i < new_population.size(); ++i)
+        // {
+        //     bands_[i] = new_population[i];
+        // }
+        std::copy(new_population.cbegin(), new_population.cend(), bands_.begin());
     }
     /**
      * rough sketch of the pipeline
@@ -125,36 +136,45 @@ public:
     /**
      * Single-point cross over
      */
-    [[nodiscard]]
-    BinString CrossOver(BinString const& a, BinString const& b)
+    void CrossOver(BinString& a, BinString& b)
     {
-        auto const active_bits = Constants::General::BIT_WIDTH - 1;
-        auto const cross_over_point = std::uniform_int_distribution<> {1U, static_cast<int>(active_bits)}(mt_);
-        // uint64_t const cross_over_mask = (1U << cross_over_point) - 1;
-        uint64_t const active_mask = Utils::GenMask(active_bits);
-        uint64_t const cross_over_lower_mask = Utils::GenMask(cross_over_point);
-        // uint64_t const cross_over_upper_mask = active_mask ^ cross_over_point;
-        uint64_t const cross_over_upper_mask = active_mask ^ cross_over_lower_mask;
-        uint64_t const result = (a.GetData() & cross_over_lower_mask) | (b.GetData() & cross_over_upper_mask);
-        return {result};
+        // auto const active_bits = Constants::General::BIT_WIDTH - 1;
+        // auto const cross_over_point = std::uniform_int_distribution<> {1U, static_cast<int>(active_bits)}(mt_);
+        // // uint64_t const cross_over_mask = (1U << cross_over_point) - 1;
+        // uint64_t const active_mask = Utils::GenMask(active_bits);
+        // uint64_t const cross_over_lower_mask = Utils::GenMask(cross_over_point);
+        // // uint64_t const cross_over_upper_mask = active_mask ^ cross_over_point;
+        // uint64_t const cross_over_upper_mask = active_mask ^ cross_over_lower_mask;
+        // uint64_t const result = (a.GetData() & cross_over_lower_mask) | (b.GetData() & cross_over_upper_mask);
+        // return result;
+        BinString::ScopedRawBandReference data_a = a.GetBandsScoped(), data_b = b.GetBandsScoped();
+
+        std::uniform_int_distribution<uint8_t> point_picker(1, sizeof(BinString::type) * 8 - 1);
+
+        BinString::type const mask = Utils::GenMask(static_cast<BinString::type>(point_picker(mt_)));
+
+        BinString::type const a_upper = *data_a & ~mask;
+        BinString::type const b_upper = *data_b & ~mask;
+
+        *data_a = (*data_a & mask) | b_upper;
+        *data_b = (*data_b & mask) | a_upper;
     }
 
     /**
      * Starting with simple mutation strategy
      * @param bs
      */
-    BinString&& Mutate(BinString&& bs)
+    void Mutate(BinString& bs)
     {
-        auto const active_bits_zero_indexed = Constants::General::BIT_WIDTH - 2;
+        constexpr auto active_bits_zero_indexed = Constants::General::BIT_WIDTH - 2;
         std::uniform_real_distribution<double> do_mutate(0.0, 1.0);
-        std::uniform_int_distribution<> gen_mutate_point{0U, static_cast<int>(active_bits_zero_indexed)};
-        uint64_t& bs_data = bs.GetData();
+        std::uniform_int_distribution<> gen_mutate_point{0, active_bits_zero_indexed};
+        BinString::ScopedRawBandReference bs_data = bs.GetBandsScoped();
         while (do_mutate(mt_) <= Constants::Genetic::MUTATION_CHANCE)
         {
             auto const mutation_point = gen_mutate_point(mt_);
-            bs_data ^= 1ULL << mutation_point;
+            *bs_data ^= 1ULL << mutation_point;
         }
-        return std::move(bs);
     }
     void Run()
     {
@@ -190,17 +210,17 @@ public:
         for (auto const& band : bands_){band.Print();}
     }
 private:
-    std::array<BinString, POPULATION_SIZE> InitBands()
+    std::array<BinString, Constants::Genetic::POPULATION_SIZE> InitBands()
     {
         return [this]<size_t... i>(std::index_sequence<i...>)
         {
-            return std::array<BinString, POPULATION_SIZE>{(static_cast<void>(i), BinString(mt_))...};
-        }(std::make_index_sequence<POPULATION_SIZE>{});
+            return std::array<BinString, Constants::Genetic::POPULATION_SIZE>{(static_cast<void>(i), BinString(mt_))...};
+        }(std::make_index_sequence<Constants::Genetic::POPULATION_SIZE>{});
     }
 private:
     std::mt19937 mt_;
-    std::array<BinString, POPULATION_SIZE> bands_;
-    FileData<FILE_DATA_TYPE>& data_;
+    std::array<BinString, Constants::Genetic::POPULATION_SIZE> bands_;
+    FileDataMan& data_;
     double temperature_;
 };
 

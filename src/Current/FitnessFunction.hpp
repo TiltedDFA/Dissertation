@@ -87,7 +87,9 @@ double FindCompressionRatio(FileData<type> const& file_data, BinString const& ba
     {
         if ((bands >> i) & 1)
         {
-            bands_cum[++active_idx] = bands_cum[active_idx - 1];
+            //got a warning about an undefined operator seq from having ++active_idx in the left bands_cum[]
+            ++active_idx;
+            bands_cum[active_idx] = bands_cum[active_idx - 1];
         }
         else
         {
