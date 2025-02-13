@@ -221,7 +221,8 @@ namespace Constants
                 if (can_truncate)
                 {
                     //finds 2^(k+1) - n
-                    Type const U = static_cast<Type>(std::ceil(std::log2(header_count))) - header_count;
+                    // Type const U = static_cast<Type>(std::ceil(std::log2(header_count))) - header_count;
+                    Type const U = static_cast<Type>(std::ceil(std::log2(header_count)));
                     // Generates a mask of U bits, which would be same as adding a 1 U times in a for loop
                     Type const Umask = Utils::GenMask(U);
                     // Shifts the mask to the correct place, as per my specification of early element corresponding

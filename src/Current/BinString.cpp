@@ -11,12 +11,13 @@ BinString::BinString(std::mt19937 &rng):
     using Constants::BinaryString::CalculateHeaders;
 
     type temp{};
-    for (size_t i = 0; i < Constants::General::NUM_BANDS; ++i)
+    size_t i;
+    bool const has_zero_state = (i = rng() & 1ULL);
+    for (; i < Constants::General::NUM_BANDS; ++i)
     {
         temp |= (rng() & 1ULL) << i;
     }
 
-    bool const has_zero_state = rng() & 1ULL;
     SetBandSeparators(data_, temp);
     SetZeroState(data_, has_zero_state);
 
