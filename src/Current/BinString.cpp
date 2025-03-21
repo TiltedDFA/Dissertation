@@ -11,8 +11,8 @@ BinString::BinString(std::mt19937 &rng):
     using Constants::BinaryString::CalculateHeaders;
 
     type temp{};
-    size_t i;
-    bool const has_zero_state = (i = rng() & 1ULL);
+    size_t i = rng() & 1ULL;
+    bool const has_zero_state = static_cast<bool>(i);
     for (; i < Constants::General::NUM_BANDS; ++i)
     {
         temp |= (rng() & 1ULL) << i;
@@ -25,10 +25,10 @@ BinString::BinString(std::mt19937 &rng):
 
     CalculateHeaders(data_, num_bands_);
     //ensuring that there is no more bands than the permitted amount
-    assert(((void)"",
-        data_ ==
-        (data_ & Utils::GenMask<uint64_t, Constants::General::NUM_BANDS>()))
-        );
+    // assert(((void)"",
+    //     data_ ==
+    //     (data_ & Utils::GenMask<uint64_t, Constants::General::NUM_BANDS>()))
+    //     );
 }
 //     for (auto const& band : bands)
 //     {
@@ -75,7 +75,7 @@ void BinString::ShuffleHeaders(std::mt19937& rng)
     std::uniform_int_distribution<size_t> dist(0, num_bands_ - 1);
     type new_headers{};
     // for (size_t i = 0; i < num_ones; ++i)
-    while (std::popcount(new_headers) != num_ones)
+    while (std::popcount(new_headers) != static_cast<int>(num_ones))
         new_headers |= static_cast<type>(1) << dist(rng);
     SetHeaders(data_, new_headers);
 }

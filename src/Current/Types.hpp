@@ -239,7 +239,9 @@ namespace Constants
         }
         constexpr bool HasZeroState(ViewParamType t) noexcept
         {
-            return static_cast<bool>(t & ~(1ULL << _::TOP_BIT_LOC));
+            // return static_cast<bool>(t & ~(1ULL << _::TOP_BIT_LOC));
+            // return static_cast<bool>((t >> _::TOP_BIT_LOC) & static_cast<Type>(1));
+            return static_cast<bool>(t >> _::TOP_BIT_LOC);
         }
         constexpr void SetZeroState(Type& t, bool const b) noexcept
         {

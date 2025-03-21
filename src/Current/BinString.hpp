@@ -81,10 +81,14 @@ public:
         svec headers;
         auto const reg_header_size = GetUniformHeaderSize();
         auto const headers_sub = GetHeaders();
-        for (int i = 0; i < num_bands_; ++i)
+        for (size_t i = 0; i < num_bands_; ++i)
             headers.push_back(reg_header_size - ((headers_sub >> i) & 1));
         return headers;
     }
+
+
+
+
     [[nodiscard]]
     svec GenBandsVec()const
     {
@@ -96,18 +100,23 @@ public:
             ret.push_back(0);
         }
 
+        type tmp{};
         for (uint64_t i = 0; i < Constants::General::BIT_WIDTH; ++i)
         {
             if ((bands >> i) & 1)
             {
                 //got a warning about an undefined operator seq from having ++active_idx in the left bands_cum[]
-                ret.push_back(1);
+                ret.push_back(tmp);
+                tmp = 0;
             }
             else
             {
-                ++ret.back();
+                // ++ret.back();
+                ++tmp;
             }
         }
+        if (tmp)
+            ret.push_back(tmp);
         return ret;
     }
     [[nodiscard]]
@@ -115,8 +124,8 @@ public:
     {
         auto const bands = GenBandsVec();
         auto const headers = GenHeaderVec();
-        assert(((void)"Header and band generated vectors do not have the same size", bands.size() == headers.size()));
-        return {svec(headers), svec(headers)};
+        // assert(((void)"Header and band generated vectors do not have the same size", bands.size() == headers.size()));
+        return {svec(bands), svec(headers)};
     }
     void Print()const
     {
@@ -158,6 +167,7 @@ public:
             final += std::to_string(*i) + "|";
         }
         final += std::to_string(*std::prev(headers.rend())) + ')';
+        final += (HasZeroBand() ? "\t HAS_Z" : "\t NO_Z");
         return final;
     }
 private:

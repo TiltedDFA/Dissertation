@@ -105,7 +105,7 @@ double FindCompressionRatio(FileData<type> const& file_data, BinString const& ba
 
         while (msb_loc > bands_cum[idx])++idx;
 
-        bit_count += bands_cum[idx] + (header_uniform_size - (headers >> (idx - bool(msb_loc))) & 1);
+        bit_count += bands_cum[idx] + (header_uniform_size - ((headers >> (idx - bool(msb_loc))) & 1));
     }
     compression_ratio = static_cast<double>(Constants::General::BIT_WIDTH * data.size()) / static_cast<double>(bit_count);
     // PRINTNLF("Raw:\t\t\t\t{}", data_bit_width * data.size());
