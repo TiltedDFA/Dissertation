@@ -48,9 +48,9 @@ namespace Constants
         inline constexpr double INITIAL_TEMPERATURE = 100.0;
         inline constexpr double TEMPERATURE_COOLING_RATE = 0.95;
         inline constexpr size_t BOLTZMANN_TOURNAMENT_SIZE = 3;
-        inline constexpr double MUTATION_CHANCE = 0.4;
+        inline constexpr double MUTATION_CHANCE = 0.6;
         inline constexpr size_t ELITE_COUNT = 2;
-        inline constexpr size_t POPULATION_SIZE = 200;
+        inline constexpr size_t POPULATION_SIZE = 50;
         inline constexpr size_t RANDOM_IMMIGRATION_COUNT = 2;
         inline constexpr size_t NUMBER_OF_RUNS = 300;
     }
@@ -128,6 +128,11 @@ namespace Constants
             // upon further consideration, cannot do something like this as the size of a header
             // depends on the number of bands which is configuration specific.
             // inline constexpr uint64_t UNIFORM_HEADER_VALUE = std::ceil(std::log2());
+        }
+        namespace Util
+        {
+            inline constexpr size_t BAND_BIT_END_VAL = General::BIT_WIDTH - 1;
+
         }
         //for simplicity’s sake, for now will not support arrays of words
         static_assert(!_::NEEDS_ARRAY, "USED UNSUPPORTED FEATURE: BIT STRING ARRAYS (BIT WIDTH WAS >= 33)");

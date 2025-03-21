@@ -32,6 +32,7 @@ public:
         ~ScopedRawBandReference()
         {
             parent_.SetBands(band_data_);
+            parent_.CalculateNumBands();
         }
         type& operator*(){return band_data_;}
     private:
@@ -52,6 +53,15 @@ public:
 
     [[nodiscard]]
     uint64_t GetUniformHeaderSize()const;
+
+    void CalculateNumBands()
+    {
+        num_bands_ = std::popcount(GetBands()) + 1 + HasZeroBand();
+    }
+    void SetZeroBitState(bool const v)
+    {
+        Constants::BinaryString::SetZeroState(data_, v);
+    }
     [[nodiscard]]
     bool HasZeroBand()const
     {
@@ -60,7 +70,8 @@ public:
     [[nodiscard]]
     type GetBands()const noexcept
     {
-        return Constants::BinaryString::GetBandSeparators(data_);
+        auto const ret = Constants::BinaryString::GetBandSeparators(data_);
+        return ret;
     }
     [[nodiscard]]
     type GetHeaders()const
@@ -71,8 +82,10 @@ public:
     {
         return {*this};
     }
+
     [[nodiscard]]
     FitnessScore GetFitnessScore()const { return fitness_score_;}
+
     void SetFitnessScore(FitnessScore const fitness_score) { fitness_score_ = fitness_score;}
 
     [[nodiscard]]
@@ -92,22 +105,23 @@ public:
     [[nodiscard]]
     svec GenBandsVec()const
     {
-        svec ret;
         auto const bands = GetBands();
+        if (bands == 0) return {Constants::General::BIT_WIDTH};
+        svec ret;
 
         if (Constants::BinaryString::HasZeroState(data_))
         {
             ret.push_back(0);
         }
 
-        type tmp{};
-        for (uint64_t i = 0; i < Constants::General::BIT_WIDTH; ++i)
+        type tmp{1};
+        for (uint64_t i = 0; i < Constants::BinaryString::Util::BAND_BIT_END_VAL; ++i)
         {
             if ((bands >> i) & 1)
             {
                 //got a warning about an undefined operator seq from having ++active_idx in the left bands_cum[]
                 ret.push_back(tmp);
-                tmp = 0;
+                tmp = 1;
             }
             else
             {

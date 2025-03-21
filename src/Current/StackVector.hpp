@@ -18,6 +18,13 @@ public:
 
     StackVector()=default;
 
+    template<typename... Args>
+    StackVector(Args&&... a)
+        :   StackVector()
+    {
+        emplace_back(std::forward<Args>(a)...);
+    }
+
 
     void push_back(cret_val v)
     {

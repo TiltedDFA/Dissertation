@@ -175,6 +175,7 @@ public:
             auto const mutation_point = gen_mutate_point(mt_);
             *bs_data ^= 1ULL << mutation_point;
         }
+        bs.SetZeroBitState(do_mutate(mt_) <= 0.5);
     }
     void Run()
     {
