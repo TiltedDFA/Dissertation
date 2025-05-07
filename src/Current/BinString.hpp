@@ -17,7 +17,7 @@ class BinString
 public:
     using type = Constants::BinaryString::Type;
     using view_type = Constants::BinaryString::ViewParamType;
-    using svec = StackVector<size_t, Constants::General::BIT_WIDTH>;
+    using svec = StackVector<size_t, Constants::General::BIT_WIDTH+1>;
 
     //its cool but hard to say whether strictly necessary, might remove later.
     //also might mess with shuffling headers in mutation...
@@ -35,6 +35,7 @@ public:
             parent_.CalculateNumBands();
         }
         type& operator*(){return band_data_;}
+        type operator*()const{return band_data_;}
     private:
         BinString& parent_;
         type band_data_;

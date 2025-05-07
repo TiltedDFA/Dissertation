@@ -170,7 +170,7 @@ public:
         std::uniform_real_distribution<double> do_mutate(0.0, 1.0);
         std::uniform_int_distribution<> gen_mutate_point{0, active_bits_zero_indexed};
         BinString::ScopedRawBandReference bs_data = bs.GetBandsScoped();
-        while (do_mutate(mt_) <= Constants::Genetic::MUTATION_CHANCE)
+        if (do_mutate(mt_) <= Constants::Genetic::MUTATION_CHANCE)
         {
             auto const mutation_point = gen_mutate_point(mt_);
             *bs_data ^= 1ULL << mutation_point;
@@ -186,23 +186,27 @@ public:
         // {
         //     new_bands.emplace_back(band, gen_par_.get());
         // }
-        EvaluatePopulation();
-        for (size_t i{}; i < Constants::Genetic::NUMBER_OF_RUNS; ++i)
+        uint64_t total_time;
         {
-            // CrossOver(new_pop.first, new_pop.second);
-            // Mutate();
-            uint64_t time;
+            ScopedTimer<std::chrono::microseconds> total_timer(&total_time);
+            EvaluatePopulation();
+            for (size_t i{}; i < Constants::Genetic::NUMBER_OF_RUNS; ++i)
             {
-                ScopedTimer<std::chrono::microseconds> timer(&time);
-                GenerateNewPopulation();
-                EvaluatePopulation();
+                // CrossOver(new_pop.first, new_pop.second);
+                // Mutate();
+                uint64_t time;
+                {
+                    ScopedTimer<std::chrono::microseconds> timer(&time);
+                    GenerateNewPopulation();
+                    EvaluatePopulation();
+                }
+                std::cout << (std::format("[{:7}] completed in {:5.5} seconds, best fitness {:2.5} \t{}\t\t{}\ttemp: {:3.2}\t\tNumericValue: {}", i + 1, static_cast<double>(time)/static_cast<double>(1e6), bands_[0].GetFitnessScore(), bands_[0].PrintShort(), bands_[2].PrintShort(), temperature_, static_cast<uint64_t>(bands_[0].GetBandsScoped().operator*()))) << std::endl;
+                std::cout << std::format("[{:7}] fitnesses {:2.5} {:2.5} {:2.5} {:2.5} {:2.5} {:2.5}\n", i + 1, bands_[1].GetFitnessScore(), bands_[2].GetFitnessScore(), bands_[3].GetFitnessScore(), bands_[4].GetFitnessScore(), bands_[5].GetFitnessScore(), bands_[6].GetFitnessScore()) << std::endl;
+                temperature_ *= Constants::Genetic::TEMPERATURE_COOLING_RATE;
             }
-            std::cout << (std::format("[{:7}] completed in {:5.5} seconds, best fitness {:2.5} \t{}\t\t{}\ttemp: {:3.2}", i + 1, static_cast<double>(time)/static_cast<double>(1e6), bands_[0].GetFitnessScore(), bands_[0].PrintShort(), bands_[2].PrintShort(), temperature_)) << std::endl;
-            std::cout << std::format("[{:7}] fitnesses {:2.5} {:2.5} {:2.5} {:2.5} {:2.5} {:2.5}\n", i + 1, bands_[1].GetFitnessScore(), bands_[2].GetFitnessScore(), bands_[3].GetFitnessScore(), bands_[4].GetFitnessScore(), bands_[5].GetFitnessScore(), bands_[6].GetFitnessScore()) << std::endl;
-            temperature_ *= Constants::Genetic::TEMPERATURE_COOLING_RATE;
         }
         // PRINTNL(std::format("Evolution completed.\n"));
-        std::cout << "Evolution completed.\n" << std::endl;
+        std::cout << std::format("Evolution completed.\nCompleted {} iterations in {:5.5} seconds ({:5.2} minutes)\n", Constants::Genetic::NUMBER_OF_RUNS, static_cast<double>(total_time)/static_cast<double>(1e6), static_cast<double>(total_time)/static_cast<double>(1e6 * 60)) << std::endl;
         EvaluatePopulation();
         bands_[0].Print();
     }
