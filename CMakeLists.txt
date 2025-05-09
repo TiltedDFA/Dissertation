@@ -24,8 +24,19 @@ add_executable(Real
         src/Current/BinString.hpp
         src/Current/BinString.cpp
         src/Current/StackVector.hpp
-        #        src/Current/EncoderProtoType.cpp
-#        src/Current/EncoderProtoType.hpp
+)
+add_executable(Tests
+        src/Current/FitnessFunction.hpp
+        src/Current/tests.cpp
+        src/Current/Types.hpp
+        src/Current/Utils.hpp
+        src/Current/FileData.cpp
+        src/Current/FileData.hpp
+        src/Current/Genetics.cpp
+        src/Current/Genetics.hpp
+        src/Current/BinString.hpp
+        src/Current/BinString.cpp
+        src/Current/StackVector.hpp
 )
 target_compile_options(Real PUBLIC -Wall -Wextra -Wpedantic)
 #target_link_options(Real PUBLIC -flto=auto)

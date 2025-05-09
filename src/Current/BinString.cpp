@@ -21,8 +21,30 @@ BinString::BinString(std::mt19937 &rng):
     SetBandSeparators(data_, temp);
     SetZeroState(data_, has_zero_state);
 
-    num_bands_ = std::popcount(temp) + 1 + has_zero_state;
+    // num_bands_ = std::popcount(temp) + 1 + has_zero_state;
+    CalculateNumBands();
+    CalculateHeaders(data_, num_bands_);
+    //ensuring that there is no more bands than the permitted amount
+    // assert(((void)"",
+    //     data_ ==
+    //     (data_ & Utils::GenMask<uint64_t, Constants::General::NUM_BANDS>()))
+    //     );
+}
+BinString::BinString(size_t band_sep_str, bool has_zero_state):
+        BinString()
+{
+    using Constants::BinaryString::SetBandSeparators;
+    using Constants::BinaryString::SetZeroState;
+    using Constants::BinaryString::CalculateHeaders;
 
+
+    SetBandSeparators(data_, band_sep_str);
+    SetZeroState(data_, has_zero_state);
+
+    // num_bands_ = std::popcount(band_sep_str) + 1 + has_zero_state;
+    CalculateNumBands();
+    // std::cout << "band sep value:" << band_sep_str << "\nband sep bin:" << std::bitset<Constants::General::BIT_WIDTH>(band_sep_str)
+    // << "\nzero state" << has_zero_state << "\nnum_bands value:" << num_bands_ << std::endl;
     CalculateHeaders(data_, num_bands_);
     //ensuring that there is no more bands than the permitted amount
     // assert(((void)"",

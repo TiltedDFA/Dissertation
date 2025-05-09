@@ -46,9 +46,18 @@ public:
         num_bands_(0),
         fitness_score_(0)
     {}
+    BinString(BinString const& p)=default;
+    BinString(BinString&& p)=default;
+    BinString& operator=(BinString const& p)=default;
+    BinString& operator=(BinString&& p)=default;
 
+    bool operator==(BinString const& other) const
+    {
+        return data_ == other.data_;
+    }
     //if this constructor is used, will generate a random band configuration
     explicit BinString(std::mt19937& rng);
+    explicit BinString(size_t band_sep_str, bool has_zero_state);
     explicit BinString(std::vector<uint8_t> const& configurations);
     void ShuffleHeaders(std::mt19937& rng);
 
@@ -58,6 +67,11 @@ public:
     void CalculateNumBands()
     {
         num_bands_ = std::popcount(GetBands()) + 1 + HasZeroBand();
+    }
+    [[nodiscard]]
+    size_t GetNumBands() const
+    {
+        return num_bands_;
     }
     void SetZeroBitState(bool const v)
     {
@@ -100,6 +114,11 @@ public:
         return headers;
     }
 
+    void AdjustToChange()
+    {
+        CalculateNumBands();
+        Constants::BinaryString::CalculateHeaders(data_, num_bands_);
+    }
 
 
 
@@ -120,13 +139,11 @@ public:
         {
             if ((bands >> i) & 1)
             {
-                //got a warning about an undefined operator seq from having ++active_idx in the left bands_cum[]
                 ret.push_back(tmp);
                 tmp = 1;
             }
             else
             {
-                // ++ret.back();
                 ++tmp;
             }
         }

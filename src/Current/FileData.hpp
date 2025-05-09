@@ -14,7 +14,6 @@
 #include "Utils.hpp"
 
 using RawDataType = Constants::BinaryString::RawDataType;
-// using RawDataType = uint64_t;
 template<FileDataType type>
 class FileData
 {
