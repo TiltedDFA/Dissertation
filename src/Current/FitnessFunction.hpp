@@ -75,26 +75,22 @@ double FindCompressionRatio(FileData<type> const& file_data, BinString const& ba
 
     uint64_t const header_uniform_size = band_config.GetUniformHeaderSize();
     Constants::BinaryString::Type const headers = band_config.GetHeaders();
-    Constants::BinaryString::Type const bands = band_config.GetBands();
+    // Constants::BinaryString::Type const bands = band_config.GetBands();
+    auto const band_svec = band_config.GenBandsVec();
     std::vector<RawDataType> const& data = file_data.GetFileData();
 
     uint64_t bit_count = header_uniform_size - (headers & 1) + Constants::General::BIT_WIDTH;
 
     std::array<size_t, Constants::General::BIT_WIDTH> bands_cum {};
-    size_t active_idx = band_config.HasZeroBand();
+    // size_t active_idx = band_config.HasZeroBand();
 
-    for (uint64_t i = 0; i < Constants::General::BIT_WIDTH; ++i)
+    auto const reference = band_config.GetAll();
+    (void)reference;
+
+    bands_cum[0] = band_svec[0];
+    for (size_t i{1}; i < band_svec.size(); ++i)
     {
-        if ((bands >> i) & 1)
-        {
-            //got a warning about an undefined operator seq from having ++active_idx in the left bands_cum[]
-            ++active_idx;
-            bands_cum[active_idx] = bands_cum[active_idx - 1];
-        }
-        else
-        {
-            ++bands_cum[active_idx];
-        }
+        bands_cum[i] = bands_cum[i - 1] + band_svec[i];
     }
 
     for (auto it = data.cbegin(); it != std::prev(data.cend()); ++it)
@@ -105,11 +101,10 @@ double FindCompressionRatio(FileData<type> const& file_data, BinString const& ba
 
         while (msb_loc > bands_cum[idx])++idx;
 
-        bit_count += bands_cum[idx] + (header_uniform_size - (headers >> (idx - bool(msb_loc))) & 1);
+        bit_count += bands_cum[idx] + (header_uniform_size - ((headers >> (idx - bool(msb_loc))) & 1));
+        // bit_count += bands_cum[idx] + header_uniform_size;
     }
     compression_ratio = static_cast<double>(Constants::General::BIT_WIDTH * data.size()) / static_cast<double>(bit_count);
-    // PRINTNLF("Raw:\t\t\t\t{}", data_bit_width * data.size());
-    // PRINTNLF("Compressed:\t\t\t{}", bit_count);
     return compression_ratio;
 }
 #endif //L2SB_REAL_HPP

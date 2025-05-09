@@ -13,7 +13,7 @@
 #include "Types.hpp"
 #include "Utils.hpp"
 
-
+using RawDataType = Constants::BinaryString::RawDataType;
 template<FileDataType type>
 class FileData
 {

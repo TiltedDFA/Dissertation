@@ -15,7 +15,8 @@
 #include <type_traits>
 
 
-using RawDataType   = uint32_t;
+#define NDEBUG
+
 using FitnessScore  = double;
 // using RawDataType = int64_t;
 enum class FileDataType
@@ -41,18 +42,29 @@ enum class HeaderType
     //
  *
  */
+#include "compile_time_values.inc"
+
 namespace Constants
 {
     namespace Genetic
     {
-        inline constexpr double INITIAL_TEMPERATURE = 100.0;
-        inline constexpr double TEMPERATURE_COOLING_RATE = 0.95;
-        inline constexpr size_t BOLTZMANN_TOURNAMENT_SIZE = 3;
-        inline constexpr double MUTATION_CHANCE = 0.4;
-        inline constexpr size_t ELITE_COUNT = 2;
-        inline constexpr size_t POPULATION_SIZE = 200;
-        inline constexpr size_t RANDOM_IMMIGRATION_COUNT = 2;
-        inline constexpr size_t NUMBER_OF_RUNS = 300;
+        // inline constexpr double INITIAL_TEMPERATURE = 100.0;
+        // inline constexpr double TEMPERATURE_COOLING_RATE = 0.95;
+        // inline constexpr size_t BOLTZMANN_TOURNAMENT_SIZE = 3;
+        // inline constexpr double MUTATION_CHANCE = 0.6;
+        // inline constexpr size_t ELITE_COUNT = 1;
+        // inline constexpr size_t POPULATION_SIZE = 50;
+        // inline constexpr size_t RANDOM_IMMIGRATION_COUNT = 2;
+        // inline constexpr size_t NUMBER_OF_RUNS = 300;
+
+        inline constexpr double INITIAL_TEMPERATURE = SCRIPT_GENERATED_VALUE_1;
+        inline constexpr double TEMPERATURE_COOLING_RATE = SCRIPT_GENERATED_VALUE_2;
+        inline constexpr size_t BOLTZMANN_TOURNAMENT_SIZE = SCRIPT_GENERATED_VALUE_3;
+        inline constexpr double MUTATION_CHANCE = SCRIPT_GENERATED_VALUE_4;
+        inline constexpr size_t ELITE_COUNT = SCRIPT_GENERATED_VALUE_5;
+        inline constexpr size_t POPULATION_SIZE = SCRIPT_GENERATED_VALUE_6;
+        inline constexpr size_t RANDOM_IMMIGRATION_COUNT = SCRIPT_GENERATED_VALUE_7;
+        inline constexpr size_t NUMBER_OF_RUNS = SCRIPT_GENERATED_VALUE_8;
     }
     namespace General
     {
@@ -61,6 +73,7 @@ namespace Constants
         inline constexpr size_t NUM_BANDS = BIT_WIDTH - 1;
         inline constexpr size_t DATA_RANGE = 2048;
         inline constexpr size_t FILE_DATA_READ_LIMIT = 20'000;
+        // inline constexpr size_t FILE_DATA_READ_LIMIT = std::numeric_limits<size_t>::max();
         inline constexpr size_t MAX_BANDS = std::numeric_limits<size_t>::max();
         inline constexpr HeaderType HEADER_TYPE = HeaderType::Truncated;
         inline constexpr FileDataType FILE_DATA_TYPE = FileDataType::Unipolar;
@@ -107,34 +120,49 @@ namespace Constants
         namespace _
         {
             inline constexpr size_t BITS_NEEDED = ::Constants::General::BIT_WIDTH * 2;
-            inline constexpr size_t VAR_COUNT =  (BITS_NEEDED <= 64) ? 1 : (BITS_NEEDED + 63) / 64;
-            using OneVarT = std::conditional_t<(BITS_NEEDED <= 8), uint8_t,
-                            std::conditional_t<(BITS_NEEDED <= 16), uint16_t,
-                            std::conditional_t<(BITS_NEEDED <= 32), uint32_t,
-                            std::conditional_t<(BITS_NEEDED <= 64), uint64_t,
-                            void>>>>;
-            inline constexpr size_t TOP_BIT_LOC = (sizeof(OneVarT) * 8) - 1;
+            // inline constexpr size_t VAR_COUNT =  (BITS_NEEDED <= 64) ? 1 : (BITS_NEEDED + 63) / 64;
+
+            template<size_t bits>
+            consteval auto GetType()
+            {
+                constexpr int VAR_COUNT = (bits <= 64) ? 1 : (bits + 63) / 64;
+
+                using resulting_type =
+                    std::conditional_t<(bits <= 8), uint8_t,
+                    std::conditional_t<(bits <= 16), uint16_t,
+                    std::conditional_t<(bits <= 32), uint32_t,
+                    std::conditional_t<(bits <= 64), uint64_t,
+                    std::array<uint64_t, VAR_COUNT>>>>>;
+                return static_cast<resulting_type>(0);
+            }
+            using Type = decltype(GetType<BITS_NEEDED>());
+            inline constexpr size_t TOP_BIT_LOC = (sizeof(Type) * 8) - 1;
             inline constexpr size_t BANDS_LOC = 0;
             inline constexpr size_t BANDS_SIZE = ::Constants::General::NUM_BANDS;
             inline constexpr size_t HEADERS_LOC = BANDS_SIZE;
             inline constexpr size_t HEADERS_SIZE = ::Constants::General::BIT_WIDTH;
-            inline constexpr bool NEEDS_ARRAY = VAR_COUNT > 1;
+            // inline constexpr bool NEEDS_ARRAY = VAR_COUNT > 1;
             inline constexpr size_t HEADER_MASK = Utils::GenMask<size_t, _::HEADERS_SIZE>();
             inline constexpr size_t HEADER_MASK_INPLACE = HEADER_MASK << HEADERS_LOC;
             inline constexpr size_t BAND_MASK = Utils::GenMask<size_t, _::BANDS_SIZE>();
             inline constexpr size_t BAND_MASK_INPLACE = BAND_MASK << BANDS_LOC;
+            inline constexpr bool NEEDS_ARRAY = std::is_array_v<Type>;
 
 
             // upon further consideration, cannot do something like this as the size of a header
             // depends on the number of bands which is configuration specific.
             // inline constexpr uint64_t UNIFORM_HEADER_VALUE = std::ceil(std::log2());
         }
+        namespace Util
+        {
+            inline constexpr size_t BAND_BIT_END_VAL = General::BIT_WIDTH - 1;
+
+        }
         //for simplicity’s sake, for now will not support arrays of words
         static_assert(!_::NEEDS_ARRAY, "USED UNSUPPORTED FEATURE: BIT STRING ARRAYS (BIT WIDTH WAS >= 33)");
 
-        using Type =    std::conditional_t<(_::NEEDS_ARRAY),
-                        std::array<uint64_t, _::VAR_COUNT>,
-                        _::OneVarT>;
+        using Type = _::Type;
+        using RawDataType = decltype(_::GetType<General::BIT_WIDTH>());
 
         using ViewParamType = std::conditional_t<(_::NEEDS_ARRAY), Type const&, Type const>;
 
@@ -216,8 +244,8 @@ namespace Constants
             else
             {
 //        *   Otherwise let k = floor(log2(n)), such that 2^k < n < 2^k+1 and let u = 2^k+1 − n.
-                bool const can_truncate = std::popcount(header_count) > 1;
                 // if 1 then n is power of 2, should never be zero
+                bool const can_truncate = std::popcount(header_count) > 1;
                 if (can_truncate)
                 {
                     //finds 2^(k+1) - n
@@ -239,7 +267,9 @@ namespace Constants
         }
         constexpr bool HasZeroState(ViewParamType t) noexcept
         {
-            return static_cast<bool>(t & ~(1ULL << _::TOP_BIT_LOC));
+            // return static_cast<bool>(t & ~(1ULL << _::TOP_BIT_LOC));
+            // return static_cast<bool>((t >> _::TOP_BIT_LOC) & static_cast<Type>(1));
+            return static_cast<bool>(t >> _::TOP_BIT_LOC);
         }
         constexpr void SetZeroState(Type& t, bool const b) noexcept
         {
@@ -248,3 +278,6 @@ namespace Constants
     }
 }
 #endif //TYPES_HPP
+
+
+

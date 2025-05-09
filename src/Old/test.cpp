@@ -55,7 +55,7 @@ int main(void)
         // just run one configuration
         // example is a 5-band example
 
-        L2SB_MITBIH_TEST(1, "4,4,4,-1");
+        L2SB_MITBIH_TEST(1, "5,3,2,1,-1");
 
         printf("\n All Files Average CR(Iniform Header) %f CR(Truncated Header) %f\n", CRU, CRT);
     }

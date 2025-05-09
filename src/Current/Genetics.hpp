@@ -20,6 +20,7 @@ using FileDataMan = FileData<Constants::General::FILE_DATA_TYPE>;
 using BoltTourProb = StackVector<double, Constants::Genetic::BOLTZMANN_TOURNAMENT_SIZE>;
 using BoltTourPart = StackVector<size_t, Constants::Genetic::BOLTZMANN_TOURNAMENT_SIZE>;
 using NewPopVec = StackVector<BinString, Constants::Genetic::POPULATION_SIZE>;
+
 class GeneticAlgorithm
 {
 public:
@@ -27,7 +28,9 @@ public:
         mt_(std::random_device{}()),
         bands_(InitBands()),
         data_(data),
-        temperature_(Constants::Genetic::INITIAL_TEMPERATURE)
+        temperature_(Constants::Genetic::INITIAL_TEMPERATURE),
+        best_performer_(mt_),
+        best_performer_count_(0)
     {
         static_assert(Constants::Genetic::POPULATION_SIZE > 5, "Population size must be greater than 0");
     }
@@ -93,7 +96,7 @@ public:
             // old_population.erase(max_elem);
         }
         std::uniform_int_distribution<> random_picker(0, Constants::Genetic::POPULATION_SIZE - 1);
-        while (new_population.size() < Constants::Genetic::POPULATION_SIZE - Constants::Genetic::RANDOM_IMMIGRATION_COUNT)
+        while (new_population.size() < Constants::Genetic::POPULATION_SIZE - (Constants::Genetic::RANDOM_IMMIGRATION_COUNT + Constants::Genetic::ELITE_COUNT))
         {
             auto const [fst, snd] = PickPairFromBoltzmannTournamentSelection();
             BinString new_band1{bands_[fst]}, new_band2{bands_[snd]};
@@ -101,6 +104,8 @@ public:
             CrossOver(new_band1, new_band2);
             Mutate(new_band1);
             Mutate(new_band2);
+            new_band1.AdjustToChange();
+            new_band2.AdjustToChange();
             new_population.emplace_back(new_band1);
             new_population.emplace_back(new_band2);
         }
@@ -109,16 +114,25 @@ public:
             //gens new random binstrings using the random constructor.
             new_population.emplace_back(mt_);
         }
-        if constexpr (Constants::General::HEADER_TYPE == HeaderType::Truncated)
-        {
-            std::for_each(new_population.begin() + Constants::Genetic::ELITE_COUNT, new_population.end(),[this](BinString& band){band.ShuffleHeaders(mt_);});
-        }
+        // if constexpr (Constants::General::HEADER_TYPE == HeaderType::Truncated)
+        // {
+        //     std::for_each(new_population.begin() + Constants::Genetic::ELITE_COUNT, new_population.end(),[this](BinString& band){band.ShuffleHeaders(mt_);});
+        // }
         // for (size_t i = 0; i < new_population.size(); ++i)
         // {
         //     bands_[i] = new_population[i];
         // }
-        std::copy(new_population.cbegin(), new_population.cend(), bands_.begin());
+        // std::ranges::copy(std::as_const(new_population), bands_.begin());
+        // std::copy(new_population.begin(), new_population.end(), bands_.begin());
+        // auto band_it = bands_.begin();
+        for (size_t i{}; i < new_population.size(); ++i)
+        {
+            bands_[i] = new_population[i];
+        }
+        // bands_ = std::move(new_population);
     }
+
+
     /**
      * rough sketch of the pipeline
      * BC = BandConfig
@@ -170,11 +184,12 @@ public:
         std::uniform_real_distribution<double> do_mutate(0.0, 1.0);
         std::uniform_int_distribution<> gen_mutate_point{0, active_bits_zero_indexed};
         BinString::ScopedRawBandReference bs_data = bs.GetBandsScoped();
-        while (do_mutate(mt_) <= Constants::Genetic::MUTATION_CHANCE)
+        if (do_mutate(mt_) <= Constants::Genetic::MUTATION_CHANCE)
         {
             auto const mutation_point = gen_mutate_point(mt_);
             *bs_data ^= 1ULL << mutation_point;
         }
+        bs.SetZeroBitState(do_mutate(mt_) <= 0.5);
     }
     void Run()
     {
@@ -185,27 +200,41 @@ public:
         // {
         //     new_bands.emplace_back(band, gen_par_.get());
         // }
-        EvaluatePopulation();
-        for (size_t i{}; i < Constants::Genetic::NUMBER_OF_RUNS; ++i)
+        uint64_t total_time;
         {
-            // CrossOver(new_pop.first, new_pop.second);
-            // Mutate();
-            uint64_t time;
+            ScopedTimer<std::chrono::microseconds> total_timer(&total_time);
+            EvaluatePopulation();
+            for (size_t i{}; i < Constants::Genetic::NUMBER_OF_RUNS; ++i)
             {
-                ScopedTimer<std::chrono::microseconds> timer(&time);
-                GenerateNewPopulation();
-                EvaluatePopulation();
+                // CrossOver(new_pop.first, new_pop.second);
+                // Mutate();
+                uint64_t time;
+                {
+                    ScopedTimer<std::chrono::microseconds> timer(&time);
+                    GenerateNewPopulation();
+                    EvaluatePopulation();
+                }
+                if (bands_[0] == best_performer_)
+                {
+                    ++best_performer_count_;
+                }
+                else
+                {
+                    best_performer_ = bands_[0];
+                    best_performer_count_ = 1;
+                }
+                std::cout << (std::format("[{:7}] completed in {:5.5} seconds, best fitness {:2.5} \t{}\t\t{}\ttemp: {:3.2}\t\tNumericValue: {}\t\tNumBands: {}", i + 1, static_cast<double>(time)/static_cast<double>(1e6), bands_[0].GetFitnessScore(), bands_[0].PrintShort(), bands_[2].PrintShort(), temperature_, static_cast<uint64_t>(bands_[0].GetBandsScoped().operator*()), bands_[0].GetNumBands())) << std::endl;
+                std::cout << std::format("[{:7}] fitnesses {:2.5} {:2.5} {:2.5} {:2.5} {:2.5} {:2.5}\n", i + 1, bands_[1].GetFitnessScore(), bands_[2].GetFitnessScore(), bands_[3].GetFitnessScore(), bands_[4].GetFitnessScore(), bands_[5].GetFitnessScore(), bands_[6].GetFitnessScore()) << std::endl;
+                temperature_ *= Constants::Genetic::TEMPERATURE_COOLING_RATE;
             }
-            std::cout << (std::format("[{:7}] completed in {:5.5} seconds, best fitness {:2.5} \t{}\t\t{}\ttemp: {:3.2}", i + 1, static_cast<double>(time)/static_cast<double>(1e6), bands_[0].GetFitnessScore(), bands_[0].PrintShort(), bands_[2].PrintShort(), temperature_)) << std::endl;
-            std::cout << std::format("[{:7}] fitnesses {:2.5} {:2.5} {:2.5} {:2.5} {:2.5} {:2.5}\n", i + 1, bands_[1].GetFitnessScore(), bands_[2].GetFitnessScore(), bands_[3].GetFitnessScore(), bands_[4].GetFitnessScore(), bands_[5].GetFitnessScore(), bands_[6].GetFitnessScore()) << std::endl;
-            temperature_ *= Constants::Genetic::TEMPERATURE_COOLING_RATE;
         }
         // PRINTNL(std::format("Evolution completed.\n"));
-        std::cout << "Evolution completed.\n" << std::endl;
+        std::cout << std::format("Evolution completed.\nCompleted {} iterations in {:5.5} seconds ({:5.2} minutes)\n", Constants::Genetic::NUMBER_OF_RUNS, static_cast<double>(total_time)/static_cast<double>(1e6), static_cast<double>(total_time)/static_cast<double>(1e6 * 60)) << std::endl;
         EvaluatePopulation();
         bands_[0].Print();
+        std::cout << std::format("Best performer found in {} iterations. fitness: {:5.5} seconds. Average time per iteration: {}",Constants::Genetic::NUMBER_OF_RUNS - best_performer_count_ ,best_performer_.GetFitnessScore() , static_cast<double>(total_time)/static_cast<double>(1e6 * Constants::Genetic::NUMBER_OF_RUNS) ) << std::endl;
     }
-    void PrintPopulation()
+    void PrintPopulation() const
     {
         for (auto const& band : bands_){band.Print();}
     }
@@ -222,6 +251,8 @@ private:
     std::array<BinString, Constants::Genetic::POPULATION_SIZE> bands_;
     FileDataMan& data_;
     double temperature_;
+    BinString best_performer_;
+    size_t best_performer_count_;
 };
 
 
