@@ -48,35 +48,36 @@ namespace Constants
 {
     namespace Genetic
     {
-        // inline constexpr double INITIAL_TEMPERATURE = 100.0;
-        // inline constexpr double TEMPERATURE_COOLING_RATE = 0.95;
-        // inline constexpr size_t BOLTZMANN_TOURNAMENT_SIZE = 3;
-        // inline constexpr double MUTATION_CHANCE = 0.6;
-        // inline constexpr size_t ELITE_COUNT = 1;
-        // inline constexpr size_t POPULATION_SIZE = 50;
-        // inline constexpr size_t RANDOM_IMMIGRATION_COUNT = 2;
-        // inline constexpr size_t NUMBER_OF_RUNS = 300;
+        inline constexpr double INITIAL_TEMPERATURE = 100.0;
+        inline constexpr double TEMPERATURE_COOLING_RATE = 0.95;
+        inline constexpr size_t BOLTZMANN_TOURNAMENT_SIZE = 3;
+        inline constexpr double MUTATION_CHANCE = 0.6;
+        inline constexpr size_t ELITE_COUNT = 1;
+        inline constexpr size_t POPULATION_SIZE = 20;
+        inline constexpr size_t RANDOM_IMMIGRATION_COUNT = 2;
+        inline constexpr size_t NUMBER_OF_RUNS = 300;
 
-        inline constexpr double INITIAL_TEMPERATURE = SCRIPT_GENERATED_VALUE_1;
-        inline constexpr double TEMPERATURE_COOLING_RATE = SCRIPT_GENERATED_VALUE_2;
-        inline constexpr size_t BOLTZMANN_TOURNAMENT_SIZE = SCRIPT_GENERATED_VALUE_3;
-        inline constexpr double MUTATION_CHANCE = SCRIPT_GENERATED_VALUE_4;
-        inline constexpr size_t ELITE_COUNT = SCRIPT_GENERATED_VALUE_5;
-        inline constexpr size_t POPULATION_SIZE = SCRIPT_GENERATED_VALUE_6;
-        inline constexpr size_t RANDOM_IMMIGRATION_COUNT = SCRIPT_GENERATED_VALUE_7;
-        inline constexpr size_t NUMBER_OF_RUNS = SCRIPT_GENERATED_VALUE_8;
+        // inline constexpr double INITIAL_TEMPERATURE = SCRIPT_GENERATED_VALUE_1;
+        // inline constexpr double TEMPERATURE_COOLING_RATE = SCRIPT_GENERATED_VALUE_2;
+        // inline constexpr size_t BOLTZMANN_TOURNAMENT_SIZE = SCRIPT_GENERATED_VALUE_3;
+        // inline constexpr double MUTATION_CHANCE = SCRIPT_GENERATED_VALUE_4;
+        // inline constexpr size_t ELITE_COUNT = SCRIPT_GENERATED_VALUE_5;
+        // inline constexpr size_t POPULATION_SIZE = SCRIPT_GENERATED_VALUE_6;
+        // inline constexpr size_t RANDOM_IMMIGRATION_COUNT = SCRIPT_GENERATED_VALUE_7;
+        // inline constexpr size_t NUMBER_OF_RUNS = SCRIPT_GENERATED_VALUE_8;
     }
     namespace General
     {
-        inline constexpr size_t BIT_WIDTH = 11;
-        inline constexpr size_t QUANTISATION = 11;
+        inline constexpr size_t BIT_WIDTH = 12;
+        inline constexpr size_t QUANTISATION = BIT_WIDTH;
         inline constexpr size_t NUM_BANDS = BIT_WIDTH - 1;
-        inline constexpr size_t DATA_RANGE = 2048;
+        inline constexpr size_t DATA_RANGE = 1 << (BIT_WIDTH - 1);
         inline constexpr size_t FILE_DATA_READ_LIMIT = 20'000;
         // inline constexpr size_t FILE_DATA_READ_LIMIT = std::numeric_limits<size_t>::max();
         inline constexpr size_t MAX_BANDS = std::numeric_limits<size_t>::max();
         inline constexpr HeaderType HEADER_TYPE = HeaderType::Truncated;
         inline constexpr FileDataType FILE_DATA_TYPE = FileDataType::Unipolar;
+        // inline constexpr FileDataType FILE_DATA_TYPE = FileDataType::Bipolar;
     }
 
     /**

@@ -9,11 +9,11 @@ import math
 PARAM_RANGES = \
 [
     [100.0,],      # INITIAL_TEMPERATURE
-    [0.95,0.99,0.80],       # TEMPERATURE_COOLING_RATE
-    [3,5,10],             # BOLTZMANN_TOURNAMENT_SIZE
-    [0.1,0.5,0.9],             # MUTATION_CHANCE
+    [0.95,],       # TEMPERATURE_COOLING_RATE
+    [3,],             # BOLTZMANN_TOURNAMENT_SIZE
+    [0.6,],             # MUTATION_CHANCE
     [1,],             # ELITE_COUNT
-    [20,50],             # POPULATION_SIZE
+    [20,50,100,300],             # POPULATION_SIZE
     [2,],             # RANDOM_IMMIGRATION_COUNT
     [200,]             # NUMBER_OF_RUNS
 ]
@@ -70,9 +70,10 @@ def main():
                 print(f"  BUILD FAILED for {combo}", file=sys.stderr)
                 writer.writerow(list(combo) + [err_tag])
                 continue
-
+            stdout = ""
             try:
-                stdout = run_simulator()
+                for i in range(0, 10):
+                    stdout += run_simulator()
             except subprocess.CalledProcessError as e:
                 err_tag = "RUN_FAILED"
                 print(f"  RUN FAILED for {combo}", file=sys.stderr)

@@ -208,7 +208,7 @@ public:
             {
                 // CrossOver(new_pop.first, new_pop.second);
                 // Mutate();
-                uint64_t time;
+                uint64_t time{};
                 {
                     ScopedTimer<std::chrono::microseconds> timer(&time);
                     GenerateNewPopulation();
@@ -228,11 +228,12 @@ public:
                 temperature_ *= Constants::Genetic::TEMPERATURE_COOLING_RATE;
             }
         }
-        // PRINTNL(std::format("Evolution completed.\n"));
+        PRINTNL(std::format("Evolution completed.\n"));
         std::cout << std::format("Evolution completed.\nCompleted {} iterations in {:5.5} seconds ({:5.2} minutes)\n", Constants::Genetic::NUMBER_OF_RUNS, static_cast<double>(total_time)/static_cast<double>(1e6), static_cast<double>(total_time)/static_cast<double>(1e6 * 60)) << std::endl;
         EvaluatePopulation();
         bands_[0].Print();
-        std::cout << std::format("Best performer found in {} iterations. fitness: {:5.5} seconds. Average time per iteration: {}",Constants::Genetic::NUMBER_OF_RUNS - best_performer_count_ ,best_performer_.GetFitnessScore() , static_cast<double>(total_time)/static_cast<double>(1e6 * Constants::Genetic::NUMBER_OF_RUNS) ) << std::endl;
+        std::cout << std::format("Best performer found in {} iterations. fitness: {:5.5}. Average time per iteration: {} seconds.\n",Constants::Genetic::NUMBER_OF_RUNS - best_performer_count_ ,best_performer_.GetFitnessScore() , static_cast<double>(total_time)/static_cast<double>(1e6 * Constants::Genetic::NUMBER_OF_RUNS) ) << std::endl;
+        std::cout << std::format("{}, {:5.5}, {}",Constants::Genetic::NUMBER_OF_RUNS - best_performer_count_ ,best_performer_.GetFitnessScore() , static_cast<double>(total_time)/static_cast<double>(1e6 * Constants::Genetic::NUMBER_OF_RUNS) ) << std::endl;
     }
     void PrintPopulation() const
     {

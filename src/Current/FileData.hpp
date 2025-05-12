@@ -18,10 +18,24 @@ template<FileDataType type>
 class FileData
 {
 public:
-    explicit FileData(std::string_view const path):
-        path_to_files_(path),
+    // explicit FileData(std::string_view const path):
+    //     path_to_files(),
+    //     file_data_()
+    // {}
+    /*
+    *    template<typename... Args>
+    StackVector(Args&&... a)
+        :   StackVector()
+    {
+        emplace_back(std::forward<Args>(a)...);
+    }
+     */
+    template <typename... paths_t>
+    requires (std::is_convertible_v<paths_t, std::string> && ...)
+    explicit FileData(paths_t... path):
+        path_to_files_{std::forward<paths_t>(path)...},
         file_data_()
-        {}
+    {}
     [[nodiscard]]
     constexpr RawDataType QuantiseData(double data) const
     {
@@ -38,7 +52,8 @@ public:
             data *= std::pow(2.0, quantisation) / data_range / 2.0;;
             return static_cast<RawDataType>(data);
         }
-        else{static_assert(false, "");}
+        else
+            {static_assert(false);}
         //get rid of warnings
         return std::numeric_limits<RawDataType>::max();
     }
@@ -47,7 +62,7 @@ public:
     /// @param term the term within a line of the csv file that we are interested in (the data)
     void ReadCSVFiles(uint32_t const term)
     {
-        auto const files = FindCSVFiles();
+        auto const files = FindFilesByExtension(".csv");
         std::size_t const data_limit = Constants::General::FILE_DATA_READ_LIMIT;
         for (auto const& f : files)
         {
@@ -66,20 +81,47 @@ public:
             }
             PRINTNL(std::format("File Imported \"{}\", {} data points quantised, data range <0-{}>", f, data_count, data_max));
         }
-        std::cout << std::format("Read: {:5.2f} MB of data across {} data points", static_cast<double>(sizeof(RawDataType) * file_data_.size()) / Utils::ByteToMB, file_data_.size()) << std::endl;
+        // std::cout << std::format("Read: {:5.2f} MB of data across {} data points", static_cast<double>(sizeof(RawDataType) * file_data_.size()) / Utils::ByteToMB, file_data_.size()) << std::endl;
+    }
+
+    ///
+    /// @param term the term within a line of the csv file that we are interested in (the data)
+    void ReadTXTFiles()
+    {
+        auto const files = FindFilesByExtension(".txt");
+        std::size_t const data_limit = Constants::General::FILE_DATA_READ_LIMIT;
+        for (auto const& f : files)
+        {
+            std::ifstream file(f);
+            std::string line;
+            uint64_t data_count{};
+            RawDataType data_max{};
+            while (std::getline(file, line) && data_count++ < data_limit)
+            {
+                double const data_term = std::stod(line);
+                data_max = std::max(data_max, static_cast<RawDataType>(data_term));
+                RawDataType const data = QuantiseData(data_term);
+                file_data_.push_back(data);
+            }
+            PRINTNL(std::format("File Imported \"{}\", {} data points quantised, data range <0-{}>", f, data_count, data_max));
+        }
+        // std::cout << std::format("Read: {:5.2f} MB of data across {} data points", static_cast<double>(sizeof(RawDataType) * file_data_.size()) / Utils::ByteToMB, file_data_.size()) << std::endl;
     }
     [[nodiscard]]
     std::vector<RawDataType> const& GetFileData() const{return file_data_;}
 private:
     [[nodiscard]]
-    std::vector<std::string> FindCSVFiles()const
+    std::vector<std::string> FindFilesByExtension(std::string const& ext)const
     {
         std::vector<std::string> files;
-        for (auto const& entry : std::filesystem::directory_iterator(path_to_files_))
+        for (auto const& path : path_to_files_)
         {
-            if (entry.is_regular_file() && entry.path().extension() == ".csv")
+            for (auto const& entry : std::filesystem::directory_iterator(path))
             {
-                files.emplace_back(std::move(entry.path().string()));
+                if (entry.is_regular_file() && entry.path().extension() == ext)
+                {
+                    files.emplace_back(std::move(entry.path().string()));
+                }
             }
         }
         if (files.empty())
@@ -104,7 +146,7 @@ private:
     }
 private:
 
-    std::string const path_to_files_;
+    std::vector<std::string> const path_to_files_;
     std::vector<RawDataType> file_data_;
 };
 

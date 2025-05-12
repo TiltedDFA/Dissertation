@@ -3,6 +3,7 @@
 //
 #include "FitnessFunction.hpp"
 #include "Genetics.hpp"
+#include "Utils.hpp"
 #include <iostream>
 #include <functional>
 
@@ -42,15 +43,25 @@ bool FindBestFitness(DataSet const& files)
 
 int main(void)
 {
-    DataSet files("../Data/MITBIH");
-    files.ReadCSVFiles(1);
+    // DataSet files("../Data/MITBIH");
+    // files.ReadCSVFiles(1);
+
+
+    DataSet files("../Data/BONN/Healthy", "../Data/BONN/SeizureEpisode", "../Data/BONN/SeizureFree");
+    files.ReadTXTFiles();
 
     std::vector<FunctionNamePair> functions {FunctionNamePair(FindBestFitness, "FindBestFitness")};
     for (auto const& [fun, name] : functions)
     {
         std::cout << "Running test: " << name << "\n\n" <<std::endl;
-        bool const res = fun(files);
-        std::cout << "Test Completed " << (res ? "Successfully" : "Unsuccessfully") << "\n\n" << std::endl;
+        uint64_t time{};
+        bool res;
+        {
+            ScopedTimer<std::chrono::microseconds> timer(&time);
+            res = fun(files);
+        }
+        // std::cout << "Test Completed " << (res ? "Successfully" : "Unsuccessfully") << " in " <<  static_cast<double>(time)/static_cast<double>(1e6) << " seconds" << "\n\n" << std::endl;
+        std::cout << std::format("Test completed {} in {:5.5} seconds.\n\n", (res ? "Successfully" : "Unsuccessfully"), static_cast<double>(time)/static_cast<double>(1e6)) << std::endl;
     }
     return 0;
 
